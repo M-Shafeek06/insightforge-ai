@@ -1,0 +1,6 @@
+OrderDate,Region,Category,Sales,Profit,Orders
+2026-01-05,South,Electronics,1200,220,10
+2026-01-07,North,Furniture,800,95,8
+2026-01-11,South,Electronics,,180,12
+2026-02-02,West,Office Supplies,650,70,7
+2026-02-14,North,Furniture,900,110,9
