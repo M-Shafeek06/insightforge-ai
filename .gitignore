@@ -26,3 +26,6 @@ out/
 .vscode/
 .idea/
 *.log
+
+# Local HTTPS development certificates
+/frontend/.certs/
