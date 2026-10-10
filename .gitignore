@@ -29,3 +29,5 @@ out/
 
 # Local HTTPS development certificates
 /frontend/.certs/
+# TypeScript build cache
+tsconfig.tsbuildinfo
