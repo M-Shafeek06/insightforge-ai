@@ -653,3 +653,100 @@ def test_question_column_selects_sales_region_over_sales():
     )
 
     assert selected == "SalesRegion"
+
+
+def test_analysis_plan_ignores_all_null_numeric_measures(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "all-null-measures-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Sales,Profit\n"
+        "South,,\n"
+        "North,,\n"
+        "West,,\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": "Analyze business performance",
+            "business_questions": [
+                "Which region generates the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["recommended_kpis"] == []
+    assert data["recommended_analyses"] == []
+    assert data["feasibility_status"] == "not_feasible"
+
+def test_analysis_plan_accepts_partially_populated_numeric_measures(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "partially-populated-measures-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Sales\n"
+        "South,1200\n"
+        "North,\n"
+        "West,900\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": "Analyze sales performance",
+            "business_questions": [
+                "Which region generates the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["feasibility_status"] == "feasible"
+
+    assert any(
+        "Sales" in kpi["required_columns"]
+        for kpi in data["recommended_kpis"]
+    )
+
+    assert any(
+        "Sales" in analysis["required_columns"]
+        for analysis in data["recommended_analyses"]
+    )

@@ -168,7 +168,7 @@ def _quality_warnings(
 
 
 def _numeric_columns(df: pd.DataFrame) -> list[str]:
-    """Return numeric measure candidates, excluding common identifiers."""
+    """Return usable numeric measures, excluding identifiers and empty columns."""
     excluded_tokens = (
         "id",
         "code",
@@ -181,12 +181,12 @@ def _numeric_columns(df: pd.DataFrame) -> list[str]:
         str(column)
         for column in df.columns
         if pd.api.types.is_numeric_dtype(df[column])
+        and df[column].notna().any()
         and not any(
             token in str(column).lower()
             for token in excluded_tokens
         )
     ]
-
 
 def _question_column(
     columns: list[str],
