@@ -532,3 +532,124 @@ def test_question_column_prefers_longer_explicit_column_name():
     )
 
     assert selected == "Salesperson"
+
+
+def test_analysis_plan_without_numeric_measures_is_not_feasible(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "categorical-only-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Category\n"
+        "South,Electronics\n"
+        "North,Furniture\n"
+        "West,Electronics\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": "Analyze business performance",
+            "business_questions": [
+                "Which category generates the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["feasibility_status"] == "not_feasible"
+    assert data["recommended_kpis"] == []
+    assert data["recommended_analyses"] == []
+
+
+def test_customer_objective_reports_missing_customer_column(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "customer-analysis-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Sales,Profit\n"
+        "South,1200,300\n"
+        "North,800,150\n"
+        "West,900,200\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": (
+                "Analyze customer purchasing performance"
+            ),
+            "business_questions": [
+                "Which customers generate the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["feasibility_status"] == "partially_feasible"
+
+    assert any(
+        "customer" in column.lower()
+        for column in data["missing_required_columns"]
+    )
+
+    assert "customer" in data["feasibility_reason"].lower()
+
+
+def test_question_column_selects_sales_region_over_sales():
+    from app.services.analysis_planner import _question_column
+
+    columns = [
+        "Sales",
+        "Salesperson",
+        "SalesRegion",
+    ]
+
+    selected = _question_column(
+        columns=columns,
+        questions=[
+            "Which sales region performs best?"
+        ],
+        candidates=[
+            "Sales",
+            "Salesperson",
+            "SalesRegion",
+        ],
+    )
+
+    assert selected == "SalesRegion"
