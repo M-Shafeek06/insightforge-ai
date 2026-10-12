@@ -260,3 +260,275 @@ def test_analysis_plan_includes_quality_warnings(
         ).lower()
         for warning in warnings
     )
+
+
+
+def test_product_objective_reports_missing_product_column(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "category-sales-dataset"
+
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Category,Sales,Profit\n"
+        "South,Electronics,1200,300\n"
+        "North,Furniture,800,150\n"
+        "West,Electronics,900,200\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": (
+                "Identify the top-performing products"
+            ),
+            "business_questions": [
+                "Which products generate the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["feasibility_status"] == "partially_feasible"
+    assert any(
+        "product" in column.lower()
+        for column in data["missing_required_columns"]
+    )
+    assert "product" in data["feasibility_reason"].lower()
+
+
+def test_business_question_prioritizes_relevant_dimension(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "category-priority-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Category,Sales,Profit\n"
+        "South,Electronics,1200,300\n"
+        "North,Furniture,800,150\n"
+        "West,Electronics,900,200\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": "Analyze business performance",
+            "business_questions": [
+                "Which category generates the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    analyses = data["recommended_analyses"]
+
+    assert analyses, "The planner should recommend at least one analysis."
+
+    assert analyses[0]["name"] == "Segment Comparison"
+
+    assert analyses[0]["required_columns"] == [
+        "Category",
+        "Sales",
+    ]
+
+def test_profit_question_selects_profit_measure(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "regional-profit-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Region,Sales,Profit\n"
+        "South,1200,300\n"
+        "North,800,150\n"
+        "West,900,200\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": "Analyze business performance",
+            "business_questions": [
+                "Which region generates the most profit?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    analyses = data["recommended_analyses"]
+
+    assert analyses, "The planner should recommend at least one analysis."
+
+    assert analyses[0]["name"] == "Segment Comparison"
+
+    assert analyses[0]["required_columns"] == [
+        "Region",
+        "Profit",
+    ]
+
+def test_monthly_sales_question_prioritizes_trend_analysis(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "monthly-sales-trend-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "OrderDate,Region,Sales,Profit\n"
+        "2026-01-01,South,1200,300\n"
+        "2026-02-01,North,800,150\n"
+        "2026-03-01,West,900,200\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": "Analyze monthly sales performance",
+            "business_questions": [
+                "How do sales change over time?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    analyses = data["recommended_analyses"]
+
+    assert analyses, "The planner should recommend at least one analysis."
+
+    assert analyses[0]["name"] == "Trend Analysis"
+
+    assert analyses[0]["required_columns"] == [
+        "OrderDate",
+        "Sales",
+    ]
+
+def test_product_objective_is_feasible_when_product_column_exists(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services import settings as settings_module
+
+    upload_dir = tmp_path / "raw"
+    upload_dir.mkdir()
+
+    dataset_id = "product-sales-dataset"
+    dataset_path = upload_dir / f"{dataset_id}.csv"
+
+    dataset_path.write_text(
+        "Product,Region,Sales,Profit\n"
+        "Laptop,South,1200,300\n"
+        "Phone,North,800,150\n"
+        "Tablet,West,900,200\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        settings_module.settings,
+        "upload_dir",
+        upload_dir,
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/analysis-plan",
+        json={
+            "business_objective": (
+                "Identify the top-performing products"
+            ),
+            "business_questions": [
+                "Which products generate the most sales?"
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["feasibility_status"] == "feasible"
+    assert data["missing_required_columns"] == []
+    assert "Product" in data["available_columns"]
+
+def test_question_column_prefers_longer_explicit_column_name():
+    from app.services.analysis_planner import _question_column
+
+    columns = [
+        "Sales",
+        "Salesperson",
+        "SalesRegion",
+    ]
+
+    selected = _question_column(
+        columns=columns,
+        questions=[
+            "Which salesperson generated the most revenue?"
+        ],
+        candidates=[
+            "Sales",
+            "Salesperson",
+            "SalesRegion",
+        ],
+    )
+
+    assert selected == "Salesperson"
