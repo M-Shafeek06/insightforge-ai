@@ -1,0 +1,63 @@
+import re
+
+from fastapi import APIRouter, HTTPException
+
+from app.schemas.execution import (
+    AnalyticsExecutionRequest,
+    AnalyticsExecutionResponse,
+)
+from app.services.analytics_executor import (
+    AnalyticsExecutionError,
+    DatasetNotFoundError,
+    execute_kpi,
+    find_dataset_path,
+)
+from app.services.settings import settings
+
+
+router = APIRouter(
+    prefix="/datasets",
+    tags=["Analytics Execution"],
+)
+
+
+@router.post(
+    "/{dataset_id}/execute",
+    response_model=AnalyticsExecutionResponse,
+)
+def execute_dataset_analysis(
+    dataset_id: str,
+    request: AnalyticsExecutionRequest,
+) -> AnalyticsExecutionResponse:
+    """Execute a supported analytical operation on an uploaded dataset."""
+
+    # Restrict identifiers to the format used by our dataset IDs.
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", dataset_id):
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid dataset identifier.",
+        )
+
+    try:
+        path = find_dataset_path(
+            dataset_id=dataset_id,
+            upload_dir=settings.upload_dir,
+        )
+
+        return execute_kpi(
+            path=path,
+            dataset_id=dataset_id,
+            request=request,
+        )
+
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except AnalyticsExecutionError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc

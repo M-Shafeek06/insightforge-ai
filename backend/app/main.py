@@ -6,6 +6,7 @@ from app.api.upload import router as upload_router
 from app.api.profiling import router as profiling_router
 from app.api.quality import router as quality_router
 from app.api.analysis import router as analysis_router
+from app.api.execution import router as execution_router
 
 app = FastAPI(
     title="InsightForge AI API",
@@ -26,6 +27,7 @@ app.include_router(upload_router, prefix="/api")
 app.include_router(profiling_router, prefix="/api")
 app.include_router(quality_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
+app.include_router(execution_router, prefix="/api")
 
 
 @app.get("/")
