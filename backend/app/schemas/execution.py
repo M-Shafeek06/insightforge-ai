@@ -27,6 +27,14 @@ class AnalyticsExecutionRequest(BaseModel):
     aggregation: Aggregation = Field(
         description="The aggregation to execute.",
     )
+    group_by: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255,
+        description=(
+            "Optional column used to group the analytical results."
+        ),
+    )
 
 
 class AnalyticsExecutionResponse(BaseModel):
@@ -38,3 +46,20 @@ class AnalyticsExecutionResponse(BaseModel):
     row_count: int
     valid_value_count: int
     null_count: int
+
+
+class AnalyticsExecutionGroup(BaseModel):
+    group: str | int | float | bool | None
+    value: float | None
+    row_count: int
+    valid_value_count: int
+    null_count: int
+
+
+class GroupedAnalyticsExecutionResponse(BaseModel):
+    dataset_id: str
+    operation: ExecutionOperation
+    column: str
+    aggregation: Aggregation
+    group_by: str
+    groups: list[AnalyticsExecutionGroup]

@@ -5,13 +5,17 @@ from fastapi import APIRouter, HTTPException
 from app.schemas.execution import (
     AnalyticsExecutionRequest,
     AnalyticsExecutionResponse,
+    GroupedAnalyticsExecutionResponse,
 )
+
 from app.services.analytics_executor import (
     AnalyticsExecutionError,
     DatasetNotFoundError,
+    execute_grouped_kpi,
     execute_kpi,
     find_dataset_path,
 )
+
 from app.services.settings import settings
 
 
@@ -21,15 +25,12 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "/{dataset_id}/execute",
-    response_model=AnalyticsExecutionResponse,
-)
+@router.post("/{dataset_id}/execute")
 def execute_dataset_analysis(
     dataset_id: str,
     request: AnalyticsExecutionRequest,
-) -> AnalyticsExecutionResponse:
-    """Execute a supported analytical operation on an uploaded dataset."""
+) -> AnalyticsExecutionResponse | GroupedAnalyticsExecutionResponse:
+    """Execute a supported KPI, optionally grouped by a column."""
 
     # Restrict identifiers to the format used by our dataset IDs.
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", dataset_id):
@@ -43,6 +44,13 @@ def execute_dataset_analysis(
             dataset_id=dataset_id,
             upload_dir=settings.upload_dir,
         )
+
+        if request.group_by is not None:
+            return execute_grouped_kpi(
+                path=path,
+                dataset_id=dataset_id,
+                request=request,
+            )
 
         return execute_kpi(
             path=path,

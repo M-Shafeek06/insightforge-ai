@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 
 from app.data.loaders.tabular import load_tabular_file
 from app.schemas.execution import (
     Aggregation,
+    AnalyticsExecutionGroup,
     AnalyticsExecutionRequest,
     AnalyticsExecutionResponse,
     ExecutionOperation,
+    GroupedAnalyticsExecutionResponse,
 )
 
 
@@ -133,4 +134,163 @@ def execute_kpi(
         row_count=len(df),
         valid_value_count=valid_value_count,
         null_count=null_count,
+    )
+
+
+def execute_grouped_kpi(
+    path: Path,
+    dataset_id: str,
+    request: AnalyticsExecutionRequest,
+) -> GroupedAnalyticsExecutionResponse:
+    """Execute a supported KPI aggregation for each distinct group."""
+
+    if request.group_by is None:
+        raise AnalyticsExecutionError(
+            "A grouping column is required for grouped execution."
+        )
+
+    try:
+        df = load_tabular_file(path)
+    except (OSError, ValueError, ImportError) as exc:
+        raise AnalyticsExecutionError(
+            "Unable to read the dataset."
+        ) from exc
+
+    if df.empty:
+        raise AnalyticsExecutionError(
+            "Cannot execute analytics on an empty dataset."
+        )
+
+    if not df.columns.is_unique:
+        raise AnalyticsExecutionError(
+            "The dataset contains duplicate column names."
+        )
+
+    if request.column not in df.columns:
+        raise AnalyticsExecutionError(
+            f"Column '{request.column}' does not exist in the dataset."
+        )
+
+    if request.group_by not in df.columns:
+        raise AnalyticsExecutionError(
+            f"Grouping column '{request.group_by}' "
+            "does not exist in the dataset."
+        )
+
+    grouping_series = df[request.group_by]
+
+    if pd.api.types.is_numeric_dtype(grouping_series):
+        valid_group_values = grouping_series.dropna()
+
+        if not all(
+            math.isfinite(float(value))
+            for value in valid_group_values
+        ):
+            raise AnalyticsExecutionError(
+                "The grouping column contains non-finite numeric values."
+            )
+
+    series = df[request.column]
+
+    if request.aggregation != Aggregation.COUNT:
+        if not pd.api.types.is_numeric_dtype(series):
+            raise AnalyticsExecutionError(
+                f"Aggregation '{request.aggregation.value}' "
+                "requires a numeric column."
+            )
+
+        valid_values = series.dropna()
+
+        if not all(
+            math.isfinite(float(value))
+            for value in valid_values
+        ):
+            raise AnalyticsExecutionError(
+                "The selected column contains non-finite numeric values."
+            )
+
+    groups: list[AnalyticsExecutionGroup] = []
+
+    grouped_data = df.groupby(
+        request.group_by,
+        dropna=False,
+        sort=False,
+        observed=True,
+    )
+
+    for group_value, group_df in grouped_data:
+        group_series = group_df[request.column]
+
+        valid_values = group_series.dropna()
+        valid_value_count = int(group_series.notna().sum())
+        null_count = int(group_series.isna().sum())
+
+        if request.aggregation == Aggregation.COUNT:
+            result = float(valid_value_count)
+
+        elif valid_values.empty:
+            result = None
+
+        elif request.aggregation == Aggregation.SUM:
+            result = float(valid_values.sum())
+
+        elif request.aggregation == Aggregation.AVERAGE:
+            result = float(valid_values.mean())
+
+        else:
+            raise AnalyticsExecutionError(
+                "The requested aggregation is not supported."
+            )
+
+        if result is not None and not math.isfinite(result):
+            raise AnalyticsExecutionError(
+                "The aggregation produced a non-finite result."
+            )
+
+        if pd.isna(group_value):
+            normalized_group_value = None
+
+        elif isinstance(group_value, pd.Timestamp):
+            normalized_group_value = group_value.isoformat()
+
+        elif hasattr(group_value, "item"):
+            normalized_group_value = group_value.item()
+
+        else:
+            normalized_group_value = group_value
+
+        if not (
+            normalized_group_value is None
+            or isinstance(
+                normalized_group_value,
+                (str, int, float, bool),
+            )
+        ):
+            normalized_group_value = str(normalized_group_value)
+
+        groups.append(
+            AnalyticsExecutionGroup(
+                group=normalized_group_value,
+                value=result,
+                row_count=len(group_df),
+                valid_value_count=valid_value_count,
+                null_count=null_count,
+            )
+        )
+
+    groups.sort(
+        key=lambda item: (
+            item.group is None,
+            str(item.group).casefold(),
+            type(item.group).__name__,
+        )
+    )
+
+    return GroupedAnalyticsExecutionResponse(
+        dataset_id=dataset_id,
+        operation=ExecutionOperation.KPI,
+        column=request.column,
+        aggregation=request.aggregation,
+        group_by=request.group_by,
+        groups=groups,
     )

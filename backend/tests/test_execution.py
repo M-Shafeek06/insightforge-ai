@@ -1,7 +1,9 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-
+from app.schemas.execution import AnalyticsExecutionRequest
+from app.services.analytics_executor import execute_grouped_kpi
 
 client = TestClient(app)
 
@@ -26,12 +28,31 @@ def create_dataset(tmp_path, monkeypatch, filename, content):
 
 
 def execute_kpi(dataset_id, column, aggregation):
+    """Send an ungrouped KPI request to the API."""
     return client.post(
         f"/api/datasets/{dataset_id}/execute",
         json={
             "operation": "kpi",
             "column": column,
             "aggregation": aggregation,
+        },
+    )
+
+
+def execute_grouped_kpi_api(
+    dataset_id,
+    column,
+    aggregation,
+    group_by,
+):
+    """Send a grouped KPI request to the API."""
+    return client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "kpi",
+            "column": column,
+            "aggregation": aggregation,
+            "group_by": group_by,
         },
     )
 
@@ -298,3 +319,383 @@ def test_invalid_dataset_identifier_returns_422():
     )
 
     assert response.status_code == 422
+
+
+# Grouped execution service tests
+
+
+def test_grouped_sum_by_region(tmp_path, monkeypatch):
+    from app.services.settings import settings
+
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "South,1200\n"
+            "North,800\n"
+            "South,NA\n"
+            "West,650\n"
+            "North,900\n"
+        ),
+    )
+
+    request = AnalyticsExecutionRequest(
+        operation="kpi",
+        column="Sales",
+        aggregation="sum",
+        group_by="Region",
+    )
+
+    result = execute_grouped_kpi(
+        path=settings.upload_dir / f"{dataset_id}.csv",
+        dataset_id=dataset_id,
+        request=request,
+    )
+
+    groups = {group.group: group for group in result.groups}
+
+    assert result.group_by == "Region"
+    assert groups["North"].value == 1700.0
+    assert groups["South"].value == 1200.0
+    assert groups["West"].value == 650.0
+
+    assert groups["South"].row_count == 2
+    assert groups["South"].valid_value_count == 1
+    assert groups["South"].null_count == 1
+
+
+def test_grouped_average_returns_none_for_all_null_group(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services.settings import settings
+
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "South,NA\n"
+            "South,NA\n"
+            "North,800\n"
+        ),
+    )
+
+    request = AnalyticsExecutionRequest(
+        operation="kpi",
+        column="Sales",
+        aggregation="average",
+        group_by="Region",
+    )
+
+    result = execute_grouped_kpi(
+        path=settings.upload_dir / f"{dataset_id}.csv",
+        dataset_id=dataset_id,
+        request=request,
+    )
+
+    groups = {group.group: group for group in result.groups}
+
+    assert groups["South"].value is None
+    assert groups["South"].row_count == 2
+    assert groups["South"].valid_value_count == 0
+    assert groups["South"].null_count == 2
+
+    assert groups["North"].value == 800.0
+
+
+def test_grouped_count_supports_text_columns(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services.settings import settings
+
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "regions.csv",
+        (
+            "Region,Category\n"
+            "South,Electronics\n"
+            "South,Furniture\n"
+            "North,Electronics\n"
+        ),
+    )
+
+    request = AnalyticsExecutionRequest(
+        operation="kpi",
+        column="Category",
+        aggregation="count",
+        group_by="Region",
+    )
+
+    result = execute_grouped_kpi(
+        path=settings.upload_dir / f"{dataset_id}.csv",
+        dataset_id=dataset_id,
+        request=request,
+    )
+
+    groups = {group.group: group for group in result.groups}
+
+    assert groups["South"].value == 2.0
+    assert groups["North"].value == 1.0
+
+
+def test_grouped_execution_rejects_missing_group_column(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services.settings import settings
+
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Region,Sales\nSouth,100\nNorth,200\n",
+    )
+
+    request = AnalyticsExecutionRequest(
+        operation="kpi",
+        column="Sales",
+        aggregation="sum",
+        group_by="Country",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Grouping column 'Country' does not exist",
+    ):
+        execute_grouped_kpi(
+            path=settings.upload_dir / f"{dataset_id}.csv",
+            dataset_id=dataset_id,
+            request=request,
+        )
+
+
+# Grouped execution API tests
+
+
+def test_grouped_sum_api_returns_results_by_region(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "South,1200\n"
+            "North,800\n"
+            "South,NA\n"
+            "West,650\n"
+            "North,900\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["dataset_id"] == dataset_id
+    assert data["operation"] == "kpi"
+    assert data["column"] == "Sales"
+    assert data["aggregation"] == "sum"
+    assert data["group_by"] == "Region"
+
+    groups = {item["group"]: item for item in data["groups"]}
+
+    assert groups["North"]["value"] == 1700.0
+    assert groups["South"]["value"] == 1200.0
+    assert groups["West"]["value"] == 650.0
+
+    assert groups["South"]["row_count"] == 2
+    assert groups["South"]["valid_value_count"] == 1
+    assert groups["South"]["null_count"] == 1
+
+
+def test_grouped_count_api_supports_text_columns(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Category\n"
+            "South,Electronics\n"
+            "South,Furniture\n"
+            "North,Electronics\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Category",
+        "count",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    groups = {
+        item["group"]: item
+        for item in response.json()["groups"]
+    }
+
+    assert groups["South"]["value"] == 2.0
+    assert groups["North"]["value"] == 1.0
+
+
+def test_grouped_api_rejects_missing_group_column(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Region,Sales\nSouth,100\nNorth,200\n",
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Country",
+    )
+
+    assert response.status_code == 422
+    assert "Grouping column 'Country' does not exist" in (
+        response.json()["detail"]
+    )
+
+def test_grouped_api_preserves_null_group_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "South,100\n"
+            ",50\n"
+            "North,200\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    groups = {
+        item["group"]: item
+        for item in data["groups"]
+    }
+
+    # Missing grouping values must remain a dedicated null group.
+    assert None in groups
+    assert groups[None]["value"] == 50.0
+    assert groups[None]["row_count"] == 1
+    assert groups[None]["valid_value_count"] == 1
+    assert groups[None]["null_count"] == 0
+
+    # Normal groups must remain intact.
+    assert groups["South"]["value"] == 100.0
+    assert groups["North"]["value"] == 200.0
+
+
+def test_grouped_execution_rejects_infinite_numeric_group_values(
+    tmp_path,
+    monkeypatch,
+):
+    from app.services.settings import settings
+
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "numeric_groups.csv",
+        (
+            "Group,Sales\n"
+            "1,100\n"
+            "inf,200\n"
+        ),
+    )
+
+    request = AnalyticsExecutionRequest(
+        operation="kpi",
+        column="Sales",
+        aggregation="sum",
+        group_by="Group",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="The grouping column contains non-finite numeric values.",
+    ):
+        execute_grouped_kpi(
+            path=settings.upload_dir / f"{dataset_id}.csv",
+            dataset_id=dataset_id,
+            request=request,
+        )
+
+
+def test_grouped_execution_excludes_unobserved_categories(
+    tmp_path,
+    monkeypatch,
+):
+    import pandas as pd
+
+    from app.services.analytics_executor import execute_grouped_kpi
+
+    df = pd.DataFrame(
+        {
+            "Region": pd.Categorical(
+                ["North", "South"],
+                categories=["North", "South", "Unused"],
+            ),
+            "Sales": [100, 200],
+        }
+    )
+
+    monkeypatch.setattr(
+        "app.services.analytics_executor.load_tabular_file",
+        lambda path: df,
+    )
+
+    request = AnalyticsExecutionRequest(
+        operation="kpi",
+        column="Sales",
+        aggregation="sum",
+        group_by="Region",
+    )
+
+    result = execute_grouped_kpi(
+        path=tmp_path / "unused.csv",
+        dataset_id="test_dataset",
+        request=request,
+    )
+
+    actual_groups = {group.group for group in result.groups}
+
+    assert actual_groups == {"North", "South"}
+    assert "Unused" not in actual_groups
