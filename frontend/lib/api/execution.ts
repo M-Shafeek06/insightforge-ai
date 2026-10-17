@@ -1,11 +1,18 @@
 ﻿export type ExecutionAggregation = "sum" | "average" | "count";
 
-export type AnalyticsExecutionRequest = {
-  operation: "kpi";
+export type DescriptiveAnalyticsRequest = {
+  operation: "descriptive";
   column: string;
-  aggregation: ExecutionAggregation;
-  group_by?: string | null;
 };
+
+export type AnalyticsExecutionRequest =
+  | {
+      operation: "kpi";
+      column: string;
+      aggregation: ExecutionAggregation;
+      group_by?: string | null;
+    }
+  | DescriptiveAnalyticsRequest;
 
 export type AnalyticsExecutionGroup = {
   group: string | number | boolean | null;
@@ -35,9 +42,26 @@ export type GroupedAnalyticsExecutionResponse = {
   groups: AnalyticsExecutionGroup[];
 };
 
+export type DescriptiveAnalyticsResponse = {
+  dataset_id: string;
+  operation: "descriptive";
+  column: string;
+  row_count: number;
+  valid_value_count: number;
+  null_count: number;
+  statistics: {
+    mean: number;
+    median: number;
+    minimum: number;
+    maximum: number;
+    standard_deviation: number | null;
+  };
+};
+
 export type AnalyticsExecutionResult =
   | AnalyticsExecutionResponse
-  | GroupedAnalyticsExecutionResponse;
+  | GroupedAnalyticsExecutionResponse
+  | DescriptiveAnalyticsResponse;
 
 export async function executeDatasetAnalytics(
   datasetId: string,

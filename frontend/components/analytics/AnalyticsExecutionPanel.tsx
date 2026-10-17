@@ -64,6 +64,7 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
 
   const allColumns = profile.columns_profile;
 
+  const [operation, setOperation] = useState<"kpi" | "descriptive">("kpi");
   const [aggregation, setAggregation] =
     useState<ExecutionAggregation>(
       numericColumns.length > 0 ? "sum" : "count"
@@ -77,13 +78,18 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
   const [executionError, setExecutionError] = useState<string | null>(null);
 
   const availableMeasureColumns =
-    aggregation === "count" ? allColumns : numericColumns;
+    operation === "descriptive"
+      ? numericColumns
+      : aggregation === "count"
+        ? allColumns
+        : numericColumns;
 
   useEffect(() => {
     const firstMeasure = profile.columns_profile.find(
       (column) => column.semantic_role === "measure"
     );
 
+    setOperation("kpi");
     setAggregation(firstMeasure ? "sum" : "count");
     setSelectedColumn(
       firstMeasure?.name ?? profile.columns_profile[0]?.name ?? ""
@@ -102,7 +108,7 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
     ) {
       setSelectedColumn(availableMeasureColumns[0].name);
     }
-  }, [aggregation, availableMeasureColumns, selectedColumn]);
+  }, [operation, aggregation, availableMeasureColumns, selectedColumn]);
 
   async function handleExecute(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,12 +123,23 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
     setResult(null);
 
     try {
-      const response = await executeDatasetAnalytics(profile.dataset_id, {
-        operation: "kpi",
-        column: selectedColumn,
-        aggregation,
-        group_by: groupBy || null,
-      });
+      const request =
+        operation === "descriptive"
+          ? {
+              operation: "descriptive" as const,
+              column: selectedColumn,
+            }
+          : {
+              operation: "kpi" as const,
+              column: selectedColumn,
+              aggregation,
+              group_by: groupBy || null,
+            };
+
+      const response = await executeDatasetAnalytics(
+        profile.dataset_id,
+        request
+      );
 
       setResult(response);
     } catch (error) {
@@ -154,8 +171,9 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
         </h3>
 
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--foreground-secondary)]">
-          Select a column, choose an aggregation, and optionally group the
-          results. Calculations run against the uploaded dataset without
+          Choose KPI Analysis for aggregations and optional grouping, or
+          Descriptive Statistics to inspect the distribution of a numeric
+          column. Calculations run against the uploaded dataset without
           modifying the original data.
         </p>
       </div>
@@ -166,7 +184,32 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
         </div>
       ) : (
         <form onSubmit={handleExecute} className="space-y-5">
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label
+                htmlFor="execution-operation"
+                className="mb-2 block text-sm font-semibold"
+              >
+                Analysis type
+              </label>
+
+              <select
+                id="execution-operation"
+                value={operation}
+                onChange={(event) => {
+                  setOperation(event.target.value as "kpi" | "descriptive");
+                  setResult(null);
+                  setExecutionError(null);
+                }}
+                disabled={executing}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] px-3 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:opacity-50"
+              >
+                <option value="kpi">KPI Analysis</option>
+                <option value="descriptive">Descriptive Statistics</option>
+              </select>
+            </div>
+
+            {operation === "kpi" && (
             <div>
               <label
                 htmlFor="execution-aggregation"
@@ -200,6 +243,8 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
                 <option value="count">Count non-null values</option>
               </select>
             </div>
+
+            )}
 
             <div>
               <label
@@ -235,6 +280,7 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
               )}
             </div>
 
+            {operation === "kpi" && (
             <div>
               <label
                 htmlFor="execution-group-by"
@@ -264,6 +310,8 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
                   ))}
               </select>
             </div>
+            )}
+
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -313,12 +361,74 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
             </p>
 
             <h4 className="mt-2 text-lg font-semibold">
-              {formatAggregation(result.aggregation)} of {result.column}
-              {"groups" in result ? ` by ${result.group_by}` : ""}
+              {result.operation === "descriptive"
+                ? `Descriptive statistics for ${result.column}`
+                : `${formatAggregation(result.aggregation)} of ${result.column}${
+                    "groups" in result ? ` by ${result.group_by}` : ""
+                  }`}
             </h4>
           </div>
 
-          {!isGroupedResult(result) ? (
+          {result.operation === "descriptive" ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { label: "Mean", value: result.statistics.mean },
+                  { label: "Median", value: result.statistics.median },
+                  { label: "Minimum", value: result.statistics.minimum },
+                  { label: "Maximum", value: result.statistics.maximum },
+                  {
+                    label: "Standard deviation",
+                    value: result.statistics.standard_deviation,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-4"
+                  >
+                    <p className="text-sm text-[var(--foreground-secondary)]">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 break-words text-2xl font-semibold">
+                      {item.value === null
+                        ? "Not available"
+                        : formatNumber(item.value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Total rows", value: result.row_count },
+                  {
+                    label: "Valid values",
+                    value: result.valid_value_count,
+                  },
+                  { label: "Null values", value: result.null_count },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-4"
+                  >
+                    <p className="text-sm text-[var(--foreground-secondary)]">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold">
+                      {item.value.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs leading-5 text-[var(--foreground-secondary)]">
+                Standard deviation uses the sample calculation. It is
+                unavailable when fewer than two valid numeric values exist.
+                Statistics are calculated from the uploaded dataset without
+                modifying the original data.
+              </p>
+            </>
+          ) : !isGroupedResult(result) ? (
             <>
               <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-6">
                 <p className="text-sm text-[var(--foreground-secondary)]">
