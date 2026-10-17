@@ -1,4 +1,5 @@
 import pytest
+import warnings
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -55,6 +56,11 @@ def execute_grouped_kpi_api(
             "group_by": group_by,
         },
     )
+
+
+# ---------------------------------------------------------------------
+# Ungrouped KPI execution API tests
+# ---------------------------------------------------------------------
 
 
 def test_kpi_sum_success(tmp_path, monkeypatch):
@@ -321,7 +327,9 @@ def test_invalid_dataset_identifier_returns_422():
     assert response.status_code == 422
 
 
+# ---------------------------------------------------------------------
 # Grouped execution service tests
+# ---------------------------------------------------------------------
 
 
 def test_grouped_sum_by_region(tmp_path, monkeypatch):
@@ -475,7 +483,9 @@ def test_grouped_execution_rejects_missing_group_column(
         )
 
 
+# ---------------------------------------------------------------------
 # Grouped execution API tests
+# ---------------------------------------------------------------------
 
 
 def test_grouped_sum_api_returns_results_by_region(
@@ -580,6 +590,7 @@ def test_grouped_api_rejects_missing_group_column(
     assert "Grouping column 'Country' does not exist" in (
         response.json()["detail"]
     )
+
 
 def test_grouped_api_preserves_null_group_values(
     tmp_path,
@@ -699,3 +710,186 @@ def test_grouped_execution_excludes_unobserved_categories(
 
     assert actual_groups == {"North", "South"}
     assert "Unused" not in actual_groups
+
+
+# ---------------------------------------------------------------------
+# Stage 13A: Analytics execution edge-case regression tests
+# ---------------------------------------------------------------------
+
+
+def test_kpi_sum_overflow_returns_422(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Sales\n1e308\n1e308\n",
+    )
+
+    # The overflow is intentional: verify the API rejects the result
+    # without emitting an expected NumPy runtime warning in this test.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="overflow encountered in reduce",
+            category=RuntimeWarning,
+        )
+        response = execute_kpi(
+            dataset_id,
+            "Sales",
+            "sum",
+        )
+
+    assert response.status_code == 422
+    assert (
+        response.json()["detail"]
+        == "The aggregation produced a non-finite result."
+    )
+
+
+def test_grouped_sum_overflow_returns_422(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "South,1e308\n"
+            "South,1e308\n"
+            "North,100\n"
+        ),
+    )
+
+    # Suppress only the expected overflow warning for this test case.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="overflow encountered in reduce",
+            category=RuntimeWarning,
+        )
+        response = execute_grouped_kpi_api(
+            dataset_id,
+            "Sales",
+            "sum",
+            "Region",
+        )
+
+    assert response.status_code == 422
+    assert (
+        response.json()["detail"]
+        == "The aggregation produced a non-finite result."
+    )
+
+
+def test_kpi_handles_negative_and_zero_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Sales\n-100\n0\n300\n",
+    )
+
+    sum_response = execute_kpi(
+        dataset_id,
+        "Sales",
+        "sum",
+    )
+
+    average_response = execute_kpi(
+        dataset_id,
+        "Sales",
+        "average",
+    )
+
+    assert sum_response.status_code == 200
+    assert sum_response.json()["value"] == 200.0
+
+    assert average_response.status_code == 200
+    assert average_response.json()["value"] == pytest.approx(
+        66.6666666667
+    )
+
+
+def test_grouped_kpi_handles_negative_and_zero_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "North,-100\n"
+            "North,0\n"
+            "South,300\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    groups = {
+        item["group"]: item
+        for item in response.json()["groups"]
+    }
+
+    assert groups["North"]["value"] == -100.0
+    assert groups["South"]["value"] == 300.0
+
+
+def test_grouped_results_have_deterministic_order_for_equal_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "West,100\n"
+            "North,200\n"
+            "South,200\n"
+            "East,100\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    groups = response.json()["groups"]
+
+    assert [item["group"] for item in groups] == [
+        "East",
+        "North",
+        "South",
+        "West",
+    ]
+
+    assert [item["value"] for item in groups] == [
+        100.0,
+        200.0,
+        200.0,
+        100.0,
+    ]
