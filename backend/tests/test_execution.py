@@ -893,3 +893,93 @@ def test_grouped_results_have_deterministic_order_for_equal_values(
         200.0,
         100.0,
     ]
+
+
+# ---------------------------------------------------------------------
+# Stage 13B: Numerically stable average regression tests
+# ---------------------------------------------------------------------
+
+
+def test_kpi_average_handles_extreme_finite_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Sales\n1.7e308\n1.7e308\n",
+    )
+
+    response = execute_kpi(
+        dataset_id,
+        "Sales",
+        "average",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["value"] == pytest.approx(
+        1.7e308,
+        rel=1e-12,
+    )
+
+
+def test_grouped_average_handles_extreme_finite_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "South,1.7e308\n"
+            "South,1.7e308\n"
+            "North,100\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "average",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    groups = {
+        item["group"]: item
+        for item in response.json()["groups"]
+    }
+
+    assert groups["South"]["value"] == pytest.approx(
+        1.7e308,
+        rel=1e-12,
+    )
+    assert groups["North"]["value"] == pytest.approx(100.0)
+
+
+def test_kpi_average_preserves_small_residual_with_extreme_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Sales\n1e308\n-1e308\n100\n",
+    )
+
+    response = execute_kpi(
+        dataset_id,
+        "Sales",
+        "average",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["value"] == pytest.approx(
+        100 / 3,
+        rel=1e-12,
+    )

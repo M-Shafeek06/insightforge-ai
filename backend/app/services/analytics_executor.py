@@ -24,6 +24,29 @@ class DatasetNotFoundError(FileNotFoundError):
     """Raised when the requested dataset does not exist."""
 
 
+def _stable_mean(values: pd.Series) -> float:
+    """Calculate a mean while reducing intermediate overflow and rounding error."""
+
+    if values.empty:
+        raise AnalyticsExecutionError(
+            "Cannot calculate an average without valid values."
+        )
+
+    numeric_values = [float(value) for value in values]
+    scale = max(abs(value) for value in numeric_values)
+
+    if scale == 0:
+        return 0.0
+
+    scaled_sum = math.fsum(
+        value / scale for value in numeric_values
+    )
+
+    scaled_mean = scaled_sum / len(numeric_values)
+
+    return float(scale * scaled_mean)
+
+
 def find_dataset_path(
     dataset_id: str,
     upload_dir: Path,
@@ -111,7 +134,7 @@ def execute_kpi(
             result = valid_values.sum()
 
         elif request.aggregation == Aggregation.AVERAGE:
-            result = valid_values.mean()
+            result = _stable_mean(valid_values)
 
         else:
             raise AnalyticsExecutionError(
@@ -235,7 +258,7 @@ def execute_grouped_kpi(
             result = float(valid_values.sum())
 
         elif request.aggregation == Aggregation.AVERAGE:
-            result = float(valid_values.mean())
+            result = _stable_mean(valid_values)
 
         else:
             raise AnalyticsExecutionError(
