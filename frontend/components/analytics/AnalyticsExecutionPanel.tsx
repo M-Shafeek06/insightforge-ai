@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { DatasetProfile } from "@/lib/api/datasets";
@@ -7,6 +7,8 @@ import {
   type AnalyticsExecutionResult,
   type ExecutionAggregation,
 } from "@/lib/api/execution";
+import AnalyticsResultsChart from "@/components/analytics/AnalyticsResultsChart";
+import AnalyticsBusinessInsights from "@/components/analytics/AnalyticsBusinessInsights";
 
 type Props = {
   profile: DatasetProfile;
@@ -377,6 +379,13 @@ export default function AnalyticsExecutionPanel({ profile }: Props) {
                   </p>
                 </div>
               </div>
+
+              {result.groups.length > 0 && (
+                <>
+                  <AnalyticsResultsChart result={result} />
+                  <AnalyticsBusinessInsights result={result} />
+                </>
+              )}
 
               {result.groups.length === 0 ? (
                 <p className="rounded-xl border border-[var(--border)] p-5 text-sm text-[var(--foreground-secondary)]">
