@@ -1,4 +1,4 @@
-from enum import Enum
+﻿from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +11,7 @@ class Aggregation(str, Enum):
 
 class ExecutionOperation(str, Enum):
     KPI = "kpi"
+    DESCRIPTIVE = "descriptive"
 
 
 class AnalyticsExecutionRequest(BaseModel):
@@ -24,17 +25,24 @@ class AnalyticsExecutionRequest(BaseModel):
         max_length=255,
         description="The exact column name to analyze.",
     )
-    aggregation: Aggregation = Field(
-        description="The aggregation to execute.",
+    aggregation: Aggregation | None = Field(
+        default=None,
+        description="The aggregation to execute for KPI operations.",
     )
     group_by: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
-        description=(
-            "Optional column used to group the analytical results."
-        ),
+        description="Optional column used to group KPI results.",
     )
+
+
+class DescriptiveStatistics(BaseModel):
+    mean: float
+    median: float
+    minimum: float
+    maximum: float
+    standard_deviation: float | None
 
 
 class AnalyticsExecutionResponse(BaseModel):
@@ -46,6 +54,16 @@ class AnalyticsExecutionResponse(BaseModel):
     row_count: int
     valid_value_count: int
     null_count: int
+
+
+class DescriptiveAnalyticsResponse(BaseModel):
+    dataset_id: str
+    operation: ExecutionOperation
+    column: str
+    row_count: int
+    valid_value_count: int
+    null_count: int
+    statistics: DescriptiveStatistics
 
 
 class AnalyticsExecutionGroup(BaseModel):

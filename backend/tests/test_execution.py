@@ -1055,3 +1055,238 @@ def test_grouped_sum_handles_entirely_null_grouping_column(
     assert group["row_count"] == 3
     assert group["valid_value_count"] == 3
     assert group["null_count"] == 0
+
+# ---------------------------------------------------------------------
+# Descriptive analytics execution API tests â€” Stage 14B
+# ---------------------------------------------------------------------
+
+
+def execute_descriptive_api(dataset_id, column, **extra):
+    """Send a descriptive analytics request to the API."""
+    return client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "descriptive",
+            "column": column,
+            **extra,
+        },
+    )
+
+
+def test_descriptive_statistics_success(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n10\n20\n30\n40\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["dataset_id"] == dataset_id
+    assert data["operation"] == "descriptive"
+    assert data["column"] == "Revenue"
+    assert data["row_count"] == 4
+    assert data["valid_value_count"] == 4
+    assert data["null_count"] == 0
+    assert data["statistics"]["mean"] == pytest.approx(25.0)
+    assert data["statistics"]["median"] == pytest.approx(25.0)
+    assert data["statistics"]["minimum"] == pytest.approx(10.0)
+    assert data["statistics"]["maximum"] == pytest.approx(40.0)
+    assert data["statistics"]["standard_deviation"] == pytest.approx(
+        12.909944487358056
+    )
+
+
+def test_descriptive_statistics_excludes_null_values(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n10\nNA\n30\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["row_count"] == 3
+    assert data["valid_value_count"] == 2
+    assert data["null_count"] == 1
+    assert data["statistics"]["mean"] == pytest.approx(20.0)
+    assert data["statistics"]["median"] == pytest.approx(20.0)
+    assert data["statistics"]["standard_deviation"] == pytest.approx(
+        14.142135623730951
+    )
+
+
+def test_descriptive_statistics_single_valid_value_has_null_std(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\nNA\n25\nNA\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["valid_value_count"] == 1
+    assert data["null_count"] == 2
+    assert data["statistics"]["mean"] == 25.0
+    assert data["statistics"]["median"] == 25.0
+    assert data["statistics"]["standard_deviation"] is None
+
+
+def test_descriptive_statistics_missing_column_returns_422(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n100\n200\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "MissingColumn")
+
+    assert response.status_code == 422
+    assert "does not exist" in response.json()["detail"]
+
+
+def test_descriptive_statistics_rejects_non_numeric_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n100\nunknown\n200\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 422
+    assert "non-numeric" in response.json()["detail"]
+
+
+def test_descriptive_statistics_rejects_all_null_column(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\nNA\nNA\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 422
+    assert "no valid numeric values" in response.json()["detail"]
+
+
+def test_descriptive_statistics_rejects_empty_dataset(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 422
+    assert "empty dataset" in response.json()["detail"]
+
+
+def test_descriptive_statistics_rejects_non_finite_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n1\ninf\n2\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 422
+    assert "non-finite" in response.json()["detail"]
+
+
+def test_descriptive_statistics_rejects_aggregation(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n100\n200\n",
+    )
+
+    response = execute_descriptive_api(
+        dataset_id,
+        "Revenue",
+        aggregation="sum",
+    )
+
+    assert response.status_code == 422
+    assert "does not accept an aggregation" in response.json()["detail"]
+
+
+def test_kpi_without_aggregation_returns_422(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n100\n200\n",
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "kpi",
+            "column": "Revenue",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "require an aggregation" in response.json()["detail"]
+
+
+def test_descriptive_median_handles_large_finite_values(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue\n1.6e308\n1.7e308\n",
+    )
+
+    response = execute_descriptive_api(dataset_id, "Revenue")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["statistics"]["median"] == pytest.approx(1.65e308)
