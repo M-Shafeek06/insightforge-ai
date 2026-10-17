@@ -983,3 +983,75 @@ def test_kpi_average_preserves_small_residual_with_extreme_values(
         100 / 3,
         rel=1e-12,
     )
+
+def test_grouped_sum_handles_extreme_values_with_cancellation(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            "North,1e308\n"
+            "North,-1e308\n"
+            "North,100\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data["groups"]) == 1
+    assert data["groups"][0]["group"] == "North"
+    assert data["groups"][0]["value"] == 100.0
+    assert data["groups"][0]["row_count"] == 3
+    assert data["groups"][0]["valid_value_count"] == 3
+    assert data["groups"][0]["null_count"] == 0
+
+
+def test_grouped_sum_handles_entirely_null_grouping_column(
+    tmp_path,
+    monkeypatch,
+):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        (
+            "Region,Sales\n"
+            ",100\n"
+            ",200\n"
+            ",300\n"
+        ),
+    )
+
+    response = execute_grouped_kpi_api(
+        dataset_id,
+        "Sales",
+        "sum",
+        "Region",
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data["groups"]) == 1
+
+    group = data["groups"][0]
+
+    assert group["group"] is None
+    assert group["value"] == 600.0
+    assert group["row_count"] == 3
+    assert group["valid_value_count"] == 3
+    assert group["null_count"] == 0
