@@ -1,4 +1,5 @@
-const BACKEND_URL = "http://127.0.0.1:8000";
+const BACKEND_URL =
+  process.env.BACKEND_URL?.trim() || "http://127.0.0.1:8000";
 
 async function proxy(request: Request, path: string[]) {
   const url = `${BACKEND_URL}/api/${path.join("/")}`;

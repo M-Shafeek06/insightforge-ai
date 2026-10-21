@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-
+from typing import Literal
 
 class AnalysisPlanningRequest(BaseModel):
     business_objective: str = Field(
@@ -25,6 +25,12 @@ class RecommendedAnalysis(BaseModel):
     name: str
     description: str
     analysis_method: str
+    operation: Literal[
+        "descriptive",
+        "trend",
+        "segment_comparison",
+        "correlation",
+    ]
     required_columns: list[str]
     business_value: str
 

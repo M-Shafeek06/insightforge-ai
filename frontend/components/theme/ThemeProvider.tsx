@@ -22,20 +22,40 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(
 
 const STORAGE_KEY = "insightforge-theme";
 
+function applyTheme(theme: Theme) {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+}
+
+function readSavedTheme(): Theme {
+  try {
+    const savedTheme = window.localStorage.getItem(STORAGE_KEY);
+
+    return savedTheme === "dark" || savedTheme === "light"
+      ? savedTheme
+      : "light";
+  } catch {
+    return "light";
+  }
+}
+
+function saveTheme(theme: Theme) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, theme);
+  } catch {
+    // The current session still works if browser storage is unavailable.
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem(STORAGE_KEY);
+    const initialTheme = readSavedTheme();
 
-    const initialTheme: Theme =
-      savedTheme === "dark" || savedTheme === "light"
-        ? savedTheme
-        : "light";
-
+    applyTheme(initialTheme);
     setTheme(initialTheme);
-    document.documentElement.dataset.theme = initialTheme;
     setMounted(true);
   }, []);
 
@@ -44,8 +64,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const nextTheme: Theme =
         currentTheme === "light" ? "dark" : "light";
 
-      document.documentElement.dataset.theme = nextTheme;
-      window.localStorage.setItem(STORAGE_KEY, nextTheme);
+      applyTheme(nextTheme);
+      saveTheme(nextTheme);
 
       return nextTheme;
     });

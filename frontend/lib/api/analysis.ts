@@ -1,4 +1,4 @@
-export type AnalysisPlanningRequest = {
+﻿export type AnalysisPlanningRequest = {
   business_objective: string;
   business_questions: string[];
 };
@@ -14,6 +14,7 @@ export type RecommendedAnalysis = {
   name: string;
   description: string;
   analysis_method: string;
+  operation: "descriptive" | "trend" | "segment_comparison" | "correlation";
   required_columns: string[];
   business_value: string;
 };

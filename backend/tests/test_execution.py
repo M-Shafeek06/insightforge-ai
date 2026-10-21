@@ -1290,3 +1290,124 @@ def test_descriptive_median_handles_large_finite_values(
     data = response.json()
 
     assert data["statistics"]["median"] == pytest.approx(1.65e308)
+# ---------------------------------------------------------------------
+# Execution API operation-specific parameter validation
+# ---------------------------------------------------------------------
+
+
+def test_kpi_rejects_trend_parameters(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Date,Revenue\n2026-01-01,100\n2026-02-01,200\n",
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "kpi",
+            "column": "Revenue",
+            "aggregation": "sum",
+            "date_column": "Date",
+            "interval": "month",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "trend parameters" in response.json()["detail"]
+
+
+def test_descriptive_rejects_group_by(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue,Region\n100,North\n200,South\n",
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "descriptive",
+            "column": "Revenue",
+            "group_by": "Region",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "does not support group_by" in response.json()["detail"]
+
+
+def test_descriptive_rejects_trend_parameters(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Date,Revenue\n2026-01-01,100\n2026-02-01,200\n",
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "descriptive",
+            "column": "Revenue",
+            "date_column": "Date",
+            "interval": "month",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "trend parameters" in response.json()["detail"]
+
+
+def test_trend_rejects_group_by(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Date,Revenue,Region\n"
+        "2026-01-01,100,North\n"
+        "2026-02-01,200,South\n",
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "trend",
+            "column": "Revenue",
+            "aggregation": "sum",
+            "date_column": "Date",
+            "interval": "month",
+            "group_by": "Region",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "does not support group_by" in response.json()["detail"]
+
+
+def test_correlation_rejects_trend_parameters(tmp_path, monkeypatch):
+    dataset_id = create_dataset(
+        tmp_path,
+        monkeypatch,
+        "sales.csv",
+        "Revenue,Profit,Date\n"
+        "100,20,2026-01-01\n"
+        "200,40,2026-02-01\n"
+        "300,60,2026-03-01\n",
+    )
+
+    response = client.post(
+        f"/api/datasets/{dataset_id}/execute",
+        json={
+            "operation": "correlation",
+            "column": "Revenue",
+            "second_column": "Profit",
+            "date_column": "Date",
+            "interval": "month",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "does not support" in response.json()["detail"]

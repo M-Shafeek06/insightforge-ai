@@ -1,52 +1,133 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
-/* =========================================
-   InsightForge AI - Theme Variables
-   ========================================= */
+/* =========================================================
+   InsightForge AI â€” Premium Glassmorphism Design System
+   ========================================================= */
+
+/* -------------------------
+   Light theme
+   ------------------------- */
 
 :root {
   color-scheme: light;
 
-  --background: #ffffff;
-  --surface: #ffffff;
-  --surface-secondary: #f5f7fa;
+  --background: #f5f7fb;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-solid: #ffffff;
+  --surface-secondary: rgba(248, 250, 252, 0.88);
+  --surface-elevated: rgba(255, 255, 255, 0.94);
 
-  --foreground: #111827;
-  --foreground-secondary: #6b7280;
+  --foreground: #0f172a;
+  --foreground-secondary: #64748b;
+  --foreground-muted: #94a3b8;
 
-  --border: #e5e7eb;
-  --accent: #06b6d4;
-  --accent-foreground: #083344;
+  --border: rgba(148, 163, 184, 0.24);
+  --border-strong: rgba(100, 116, 139, 0.34);
 
-  --scrollbar-track: #f5f7fa;
+  --accent: #0891b2;
+  --accent-strong: #0e7490;
+  --accent-foreground: #ffffff;
+
+  --accent-soft: rgba(8, 145, 178, 0.10);
+  --accent-glow: rgba(34, 211, 238, 0.16);
+
+  --secondary-accent: #6366f1;
+  --secondary-accent-soft: rgba(99, 102, 241, 0.09);
+
+  --success: #059669;
+  --success-soft: rgba(16, 185, 129, 0.10);
+
+  --warning: #d97706;
+  --warning-soft: rgba(245, 158, 11, 0.12);
+
+  --danger: #dc2626;
+  --danger-soft: rgba(239, 68, 68, 0.10);
+
+  --shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.035),
+    0 2px 6px rgba(15, 23, 42, 0.025);
+
+  --shadow-glass:
+    0 8px 30px rgba(15, 23, 42, 0.045),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+
+  --shadow-elevated:
+    0 18px 45px rgba(15, 23, 42, 0.075),
+    0 4px 12px rgba(15, 23, 42, 0.035);
+
+  --glass-blur: 18px;
+
+  --scrollbar-track: #eef2f7;
   --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+
+  --pattern-dot: rgba(100, 116, 139, 0.12);
+  --pattern-line: rgba(100, 116, 139, 0.055);
 }
 
-/* =========================================
-   Dark Theme
-   ========================================= */
+/* -------------------------
+   Dark theme
+   ------------------------- */
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --background: #000000;
-  --surface: #181818;
-  --surface-secondary: #111111;
+  --background: #0b1020;
+  --surface: rgba(17, 24, 39, 0.76);
+  --surface-solid: #111827;
+  --surface-secondary: rgba(24, 34, 53, 0.78);
+  --surface-elevated: rgba(24, 34, 53, 0.94);
 
-  --foreground: #f9fafb;
-  --foreground-secondary: #a1a1aa;
+  --foreground: #f1f5f9;
+  --foreground-secondary: #a1aec2;
+  --foreground-muted: #718096;
 
-  --border: #303030;
+  --border: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.27);
+
   --accent: #22d3ee;
+  --accent-strong: #67e8f9;
   --accent-foreground: #083344;
 
-  --scrollbar-track: #111111;
-  --scrollbar-thumb: #525252;
+  --accent-soft: rgba(34, 211, 238, 0.11);
+  --accent-glow: rgba(34, 211, 238, 0.13);
+
+  --secondary-accent: #a5b4fc;
+  --secondary-accent-soft: rgba(129, 140, 248, 0.13);
+
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.12);
+
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+
+  --shadow-sm:
+    0 2px 5px rgba(0, 0, 0, 0.12);
+
+  --shadow-glass:
+    0 10px 35px rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.025);
+
+  --shadow-elevated:
+    0 20px 50px rgba(0, 0, 0, 0.30),
+    0 4px 12px rgba(0, 0, 0, 0.14);
+
+  --glass-blur: 20px;
+
+  --scrollbar-track: #111827;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+
+  --pattern-dot: rgba(148, 163, 184, 0.13);
+  --pattern-line: rgba(148, 163, 184, 0.045);
 }
 
-/* =========================================
-   Global Base Styles
-   ========================================= */
+/* =========================================================
+   Global foundation
+   ========================================================= */
 
 * {
   box-sizing: border-box;
@@ -55,33 +136,207 @@
 html {
   min-height: 100%;
   background: var(--background);
+  scroll-behavior: smooth;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 body {
   min-height: 100vh;
   margin: 0;
 
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(
+      ellipse at 0% 0%,
+      var(--accent-glow),
+      transparent 38%
+    ),
+    radial-gradient(
+      ellipse at 100% 12%,
+      var(--secondary-accent-soft),
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at 52% 100%,
+      var(--secondary-accent-soft),
+      transparent 42%
+    );
+
   color: var(--foreground);
 
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 
   transition:
-    background-color 180ms ease,
+    background-color 220ms ease,
     color 180ms ease;
 }
 
-/* =========================================
-   Scrollbar
-   ========================================= */
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   Reusable background patterns
+   ========================================================= */
+
+/*
+ * Apply to a page wrapper when a more pronounced, but subtle,
+ * geometric texture is desired.
+ */
+
+.app-pattern {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      var(--pattern-dot) 1px,
+      transparent 0
+    ),
+    linear-gradient(
+      135deg,
+      var(--pattern-line) 1px,
+      transparent 1px
+    );
+
+  background-size:
+    24px 24px,
+    72px 72px;
+}
+
+/* =========================================================
+   Reusable glass surfaces
+   ========================================================= */
+
+.glass-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+.glass-panel-elevated {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-elevated);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+.glass-panel-interactive {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    background-color 180ms ease;
+}
+
+.glass-panel-interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* =========================================================
+   Reusable interactive surfaces
+   ========================================================= */
+
+.glass-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.glass-button:hover:not(:disabled) {
+  background: var(--surface-secondary);
+  border-color: var(--border-strong);
+}
+
+.glass-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* =========================================================
+   Scrollbars
+   ========================================================= */
 
 * {
+  scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-/* =========================================
-   Accessibility
-   ========================================= */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 2px solid var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* =========================================================
+   Accessibility and responsive motion
+   ========================================================= */
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .glass-panel-interactive:hover {
+    transform: translateY(-2px);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -93,3 +348,1418 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* INSIGHTFORGE WORKSPACE REFINEMENT */
+
+/* Consistent interactive focus */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Refined native form controls */
+:where(input:not([type="file"]), select, textarea) {
+  max-width: 100%;
+  border-color: var(--border);
+  border-radius: 0.75rem;
+  background-color: var(--surface);
+  color: var(--foreground);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+:where(input:not([type="file"]), select, textarea):focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+:where(input, textarea)::placeholder {
+  color: var(--foreground-secondary);
+  opacity: 0.8;
+}
+
+/* Analytics table polish */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+:where(th, td) {
+  border-color: var(--border);
+}
+
+thead th {
+  color: var(--foreground-secondary);
+  font-weight: 600;
+}
+
+tbody tr {
+  transition: background-color 160ms ease;
+}
+
+tbody tr:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--accent) 5%,
+    transparent
+  );
+}
+
+/* Balanced heading wrapping */
+:where(h1, h2, h3, h4) {
+  text-wrap: balance;
+}
+
+/* Compact screens */
+@media (max-width: 640px) {
+  .glass-panel,
+  .glass-panel-elevated {
+    border-radius: 1rem;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  :where(button, a, input, select, textarea, tbody tr) {
+    transition: none !important;
+  }
+}
+
+/* =========================================================
+   INSIGHTFORGE AI — WORKSPACE UI POLISH
+   Visual-only refinement; no application logic changes.
+   ========================================================= */
+
+/* More intentional page rhythm */
+main.app-pattern {
+  background-attachment: fixed;
+}
+
+main.app-pattern > div {
+  gap: 1.5rem;
+}
+
+/* Refined product header */
+main.app-pattern > div > header {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-elevated);
+}
+
+main.app-pattern > div > header::before {
+  position: absolute;
+  z-index: -1;
+  top: -7rem;
+  right: -5rem;
+  width: 20rem;
+  height: 20rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--accent-glow),
+    transparent 70%
+  );
+  content: "";
+  pointer-events: none;
+}
+
+main.app-pattern > div > header h1 {
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+main.app-pattern > div > header p {
+  line-height: 1.75;
+}
+
+/* Consistent section hierarchy */
+main.app-pattern h2 {
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+
+main.app-pattern h3 {
+  letter-spacing: -0.015em;
+}
+
+/* Dataset upload surface */
+main.app-pattern label[class*="border-dashed"] {
+  position: relative;
+  min-height: 12rem;
+  border-width: 1.5px;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      var(--accent-soft),
+      transparent 72%
+    ),
+    var(--surface);
+  box-shadow: var(--shadow-glass);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+main.app-pattern label[class*="border-dashed"]:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-elevated);
+}
+
+main.app-pattern label[class*="border-dashed"] button,
+main.app-pattern label[class*="border-dashed"] [role="button"] {
+  border-radius: 0.75rem;
+}
+
+/* KPI cards: unified surfaces and clear hierarchy */
+main.app-pattern .glass-panel-interactive {
+  border-radius: 1.1rem;
+  box-shadow: var(--shadow-glass);
+}
+
+main.app-pattern .glass-panel-interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+main.app-pattern .glass-panel-interactive h3,
+main.app-pattern .glass-panel-interactive p {
+  line-height: 1.55;
+}
+
+/* Stable card typography */
+main.app-pattern .glass-panel,
+main.app-pattern .glass-panel-elevated {
+  border-radius: 1.15rem;
+}
+
+/* Dataset identity row */
+main.app-pattern code {
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth, consistent control styling */
+main.app-pattern button,
+main.app-pattern input,
+main.app-pattern select {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+main.app-pattern button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Prevent horizontal overflow on smaller screens */
+main.app-pattern,
+main.app-pattern > div {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  main.app-pattern > div {
+    padding-top: 0.5rem;
+    padding-bottom: 2rem;
+  }
+
+  main.app-pattern > div > header {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  main.app-pattern > div {
+    gap: 1.15rem;
+  }
+
+  main.app-pattern > div > header {
+    padding: 1.25rem;
+    border-radius: 1.15rem;
+  }
+
+  main.app-pattern > div > header h1 {
+    font-size: clamp(2rem, 9vw, 3rem);
+  }
+
+  main.app-pattern label[class*="border-dashed"] {
+    min-height: 10rem;
+    padding: 2rem 1rem;
+  }
+
+  main.app-pattern .glass-panel-interactive {
+    border-radius: 0.95rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main.app-pattern button,
+  main.app-pattern input,
+  main.app-pattern select,
+  main.app-pattern label[class*="border-dashed"],
+  main.app-pattern .glass-panel-interactive {
+    transition: none;
+  }
+}
+
+
+/* =========================================================
+   FINAL REFINEMENT OVERRIDES
+   Original stylesheet retained above; refined tokens, responsive
+   workspace, navbar underline, and performance rules follow.
+   ========================================================= */
+
+/* =========================================================
+   InsightForge AI — Refined Design System
+   Consolidated stylesheet: one source of truth per component.
+   ========================================================= */
+
+/* ------------------------- Design tokens ------------------------- */
+
+:root {
+  color-scheme: light;
+
+  --background: #f3f7ff;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-solid: #ffffff;
+  --surface-secondary: rgba(244, 248, 255, 0.92);
+  --surface-elevated: rgba(255, 255, 255, 0.94);
+  --surface-muted: rgba(226, 237, 250, 0.76);
+
+  --foreground: #0f172a;
+  --foreground-secondary: #64748b;
+  --foreground-muted: #94a3b8;
+
+  --border: rgba(148, 163, 184, 0.24);
+  --border-strong: rgba(100, 116, 139, 0.34);
+
+  --accent: #087ea4;
+  --accent-strong: #086b8d;
+  --accent-foreground: #ffffff;
+  --accent-soft: rgba(8, 126, 164, 0.12);
+  --accent-glow: rgba(14, 165, 233, 0.19);
+
+  --secondary-accent: #6366f1;
+  --secondary-accent-soft: rgba(99, 102, 241, 0.12);
+
+  --success: #059669;
+  --success-soft: rgba(16, 185, 129, 0.10);
+  --warning: #d97706;
+  --warning-soft: rgba(245, 158, 11, 0.12);
+  --danger: #dc2626;
+  --danger-soft: rgba(239, 68, 68, 0.10);
+
+  --shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.035),
+    0 2px 6px rgba(15, 23, 42, 0.025);
+  --shadow-glass:
+    0 8px 30px rgba(15, 23, 42, 0.045),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+  --shadow-elevated:
+    0 18px 45px rgba(15, 23, 42, 0.075),
+    0 4px 12px rgba(15, 23, 42, 0.035);
+
+  --glass-blur: 18px;
+  --scrollbar-track: #eef2f7;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --pattern-dot: rgba(58, 93, 145, 0.18);
+  --pattern-line: rgba(62, 112, 178, 0.055);
+
+  --navbar-height: 5.1rem;
+  --anchor-offset: 6.75rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0b1020;
+  --surface: rgba(17, 24, 39, 0.76);
+  --surface-solid: #111827;
+  --surface-secondary: rgba(24, 34, 53, 0.88);
+  --surface-elevated: rgba(17, 25, 42, 0.96);
+  --surface-muted: rgba(38, 51, 73, 0.72);
+
+  --foreground: #f1f5f9;
+  --foreground-secondary: #a1aec2;
+  --foreground-muted: #718096;
+
+  --border: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.27);
+
+  --accent: #22d3ee;
+  --accent-strong: #67e8f9;
+  --accent-foreground: #083344;
+  --accent-soft: rgba(34, 211, 238, 0.11);
+  --accent-glow: rgba(34, 211, 238, 0.13);
+
+  --secondary-accent: #a5b4fc;
+  --secondary-accent-soft: rgba(129, 140, 248, 0.13);
+
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.12);
+  --shadow-glass:
+    0 10px 35px rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.025);
+  --shadow-elevated:
+    0 20px 50px rgba(0, 0, 0, 0.30),
+    0 4px 12px rgba(0, 0, 0, 0.14);
+
+  --glass-blur: 18px;
+  --scrollbar-track: #111827;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+  --pattern-dot: rgba(148, 163, 184, 0.14);
+  --pattern-line: rgba(148, 163, 184, 0.04);
+}
+
+/* ------------------------- Global foundation ------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--anchor-offset);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse at 0% 0%, var(--accent-glow), transparent 38%),
+    radial-gradient(ellipse at 100% 12%, var(--secondary-accent-soft), transparent 34%),
+    radial-gradient(ellipse at 52% 100%, var(--secondary-accent-soft), transparent 42%),
+    var(--background);
+  color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+a {
+  color: inherit;
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+:where(h1, h2, h3, h4) {
+  text-wrap: balance;
+}
+
+/* ------------------------- Page texture ------------------------- */
+
+.app-pattern {
+  min-height: 100vh;
+  min-width: 0;
+  background-color: var(--background);
+  background-attachment: scroll;
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--pattern-dot) 1px, transparent 1.25px),
+    linear-gradient(135deg, var(--pattern-line) 1px, transparent 1px),
+    radial-gradient(ellipse at 8% 0%, rgba(14, 165, 233, 0.13), transparent 38%),
+    radial-gradient(ellipse at 96% 10%, rgba(99, 102, 241, 0.11), transparent 36%),
+    linear-gradient(180deg, #f2f7ff 0%, #f7f9fd 54%, #edf4fc 100%);
+  background-size: 24px 24px, 72px 72px, auto, auto, auto;
+}
+
+:root[data-theme="dark"] .app-pattern {
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--pattern-dot) 1px, transparent 1.25px),
+    linear-gradient(135deg, var(--pattern-line) 1px, transparent 1px),
+    radial-gradient(ellipse at 4% 0%, rgba(8, 145, 178, 0.14), transparent 42%),
+    radial-gradient(ellipse at 96% 8%, rgba(99, 102, 241, 0.12), transparent 40%),
+    linear-gradient(180deg, #0b1020 0%, #0e1525 55%, #0a1120 100%);
+}
+
+/* ------------------------- Glass surfaces ------------------------- */
+
+.glass-panel,
+.glass-panel-elevated {
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+.glass-panel {
+  background: var(--surface);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass-panel-elevated {
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-elevated);
+}
+
+.glass-panel-interactive {
+  border-radius: 1.1rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.glass-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.glass-button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-secondary);
+}
+
+/* ------------------------- Navigation ------------------------- */
+
+#insightforge-navbar.insightforge-navbar,
+#insightforge-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: var(--navbar-height);
+  padding-top: 1.05rem;
+  padding-bottom: 1.05rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.025);
+  -webkit-backdrop-filter: saturate(150%) blur(16px);
+  backdrop-filter: saturate(150%) blur(16px);
+}
+
+:root[data-theme="dark"] #insightforge-navbar {
+  background: rgba(10, 16, 30, 0.88);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+#insightforge-navbar button:focus-visible {
+  outline-offset: 4px;
+}
+
+/* Active item: transparent background, underline only.
+   The existing active span is used, avoiding a duplicate pseudo-element. */
+#insightforge-navbar .navbar-link,
+#insightforge-navbar button[aria-current="page"] {
+  position: relative;
+  min-height: 3rem;
+  border-radius: 0.6rem;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: color 140ms ease;
+}
+
+#insightforge-navbar .navbar-link:hover:not(:disabled),
+#insightforge-navbar button[aria-current="page"]:hover:not(:disabled) {
+  background: transparent !important;
+}
+
+#insightforge-navbar .navbar-link.is-active,
+#insightforge-navbar .navbar-link[aria-current="page"],
+#insightforge-navbar button[aria-current="page"] {
+  color: var(--accent-strong) !important;
+}
+
+/* The active span is already rendered by ProfileView. Its width animates cleanly. */
+#insightforge-navbar .navbar-link > span,
+#insightforge-navbar button[aria-current="page"] > span {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: -0.62rem;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent) !important;
+  transform-origin: center;
+  animation: navbar-underline-enter 180ms ease-out both;
+  pointer-events: none;
+}
+
+@keyframes navbar-underline-enter {
+  from { opacity: 0.55; transform: scaleX(0.45); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+/* Icon-only theme toggle. Accessible label/title remains available to assistive tech. */
+#insightforge-navbar .theme-toggle-icon-only {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+#insightforge-navbar .theme-toggle-icon-only > button {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  overflow: hidden;
+  padding: 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.9rem !important;
+  background: var(--surface-secondary) !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+#insightforge-navbar .theme-toggle-icon-only > button:hover {
+  border-color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+}
+
+#insightforge-navbar .theme-toggle-icon-only svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+}
+
+/* ------------------------- Workspace hero and upload ------------------------- */
+
+#workspace,
+#dataset-overview,
+#data-quality,
+#analysis-planner,
+#analysis-planner-heading,
+#analytics-execution-panel,
+#column-intelligence {
+  scroll-margin-top: var(--anchor-offset);
+}
+
+#workspace > .workspace-upload-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.78fr);
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 3rem);
+  min-height: clamp(28rem, calc(100svh - 35rem), 34rem);
+  padding: clamp(1.5rem, 2.8vw, 2.75rem);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 1.6rem;
+  background-color: var(--surface-elevated);
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent) 14%, transparent) 1px, transparent 1.25px),
+    radial-gradient(ellipse at 0% 0%, var(--accent-glow), transparent 54%),
+    radial-gradient(ellipse at 100% 100%, var(--secondary-accent-soft), transparent 48%);
+  background-size: 19px 19px, auto, auto;
+  background-position: 0 0, center, center;
+  box-shadow: var(--shadow-elevated);
+}
+
+#workspace > .workspace-upload-panel::before,
+#workspace > .workspace-upload-panel::after {
+  position: absolute;
+  z-index: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 13%, transparent);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+#workspace > .workspace-upload-panel::before {
+  top: -8rem;
+  right: 18%;
+  width: 17rem;
+  height: 17rem;
+  opacity: 0.75;
+}
+
+#workspace > .workspace-upload-panel::after {
+  right: 34%;
+  bottom: -8rem;
+  width: 19rem;
+  height: 19rem;
+  border-color: color-mix(in srgb, var(--secondary-accent) 10%, transparent);
+}
+
+#workspace > .workspace-upload-panel > .workspace-intro,
+#workspace > .workspace-upload-panel > .workspace-upload {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+:root[data-theme="dark"] #workspace > .workspace-upload-panel {
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent) 12%, transparent) 1px, transparent 1.25px),
+    radial-gradient(ellipse at 0% 0%, rgba(34, 211, 238, 0.10), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, rgba(129, 140, 248, 0.10), transparent 50%);
+}
+
+.workspace-intro {
+  min-width: 0;
+  padding: 0.5rem 0;
+}
+
+.workspace-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.19em;
+}
+
+:root[data-theme="dark"] .workspace-eyebrow {
+  color: var(--accent);
+}
+
+.workspace-eyebrow-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 4px var(--success-soft), 0 0 18px var(--success-soft);
+}
+
+#workspace > .workspace-upload-panel .workspace-intro h1 {
+  max-width: 13ch;
+  margin: 1.1rem 0 0;
+  font-size: clamp(2.55rem, 4.2vw, 3.85rem);
+  font-weight: 850;
+  letter-spacing: -0.065em;
+  line-height: 0.99;
+  text-wrap: balance;
+}
+
+.workspace-intro h1 span {
+  display: block;
+  color: var(--accent-strong);
+  background: linear-gradient(100deg, var(--accent-strong), var(--secondary-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:root[data-theme="dark"] .workspace-intro h1 span {
+  background-image: linear-gradient(100deg, #67e8f9, #a5b4fc);
+}
+
+.workspace-description {
+  max-width: 37rem;
+  margin-top: 1rem;
+  color: var(--foreground-secondary);
+  font-size: clamp(0.95rem, 1.5vw, 1.08rem);
+  line-height: 1.7;
+}
+
+.workspace-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.workspace-capabilities > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-solid) 70%, transparent);
+  color: var(--foreground-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.workspace-capabilities i {
+  color: var(--accent-strong);
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.workspace-upload {
+  display: flex;
+  min-width: 0;
+  min-height: 18.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.25rem, 2.2vw, 2rem);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 42%, var(--border));
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
+  text-align: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-glass);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.workspace-upload:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 38%, var(--surface-solid));
+}
+
+.workspace-upload:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  outline-offset: 3px;
+}
+
+.workspace-upload:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+:root[data-theme="dark"] #workspace > .workspace-upload-panel .workspace-upload {
+  background: color-mix(in srgb, var(--surface-solid) 90%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.upload-icon-wrap {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 1.25rem;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: 0 10px 24px var(--accent-glow);
+}
+
+:root[data-theme="dark"] .upload-icon-wrap {
+  color: var(--accent);
+}
+
+.upload-title {
+  margin-top: 1.3rem;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.upload-description {
+  max-width: 18rem;
+  margin-top: 0.55rem;
+  color: var(--foreground-secondary);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.upload-formats {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.15rem;
+  color: var(--foreground-secondary);
+  font-size: 0.72rem;
+}
+
+.upload-formats b {
+  padding: 0.28rem 0.48rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--surface-secondary);
+  color: var(--foreground);
+  font-size: 0.67rem;
+  letter-spacing: 0.04em;
+}
+
+.upload-formats > span {
+  margin-left: 0.25rem;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 1.4rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 0.8rem;
+  background: linear-gradient(110deg, var(--accent-strong), var(--secondary-accent));
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 800;
+  box-shadow: 0 8px 20px var(--accent-glow);
+  transition: filter 140ms ease, box-shadow 140ms ease;
+}
+
+.upload-button:hover:not(:disabled) {
+  filter: brightness(1.04);
+  box-shadow: 0 10px 24px var(--accent-glow);
+}
+
+:root[data-theme="dark"] .upload-button {
+  color: #071321;
+}
+
+/* ------------------------- Data tables and controls ------------------------- */
+
+:where(input:not([type="file"]), select, textarea) {
+  max-width: 100%;
+  border-color: var(--border);
+  border-radius: 0.75rem;
+  background-color: var(--surface);
+  color: var(--foreground);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+:where(input:not([type="file"]), select, textarea):focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+:where(input, textarea)::placeholder {
+  color: var(--foreground-muted);
+  opacity: 1;
+}
+
+main.app-pattern input:not([type="file"]),
+main.app-pattern select,
+main.app-pattern textarea {
+  color: var(--foreground);
+  background-color: var(--surface-secondary);
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+:where(th, td) {
+  border-color: var(--border);
+}
+
+thead th {
+  color: var(--foreground-secondary);
+  font-weight: 600;
+}
+
+tbody tr {
+  transition: background-color 120ms ease;
+}
+
+tbody tr:hover {
+  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+main.app-pattern code {
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keep data cards visually consistent without overriding Tailwind layout. */
+main.app-pattern .glass-panel,
+main.app-pattern .glass-panel-elevated,
+main.app-pattern .glass-panel-interactive {
+  border-radius: 1.1rem;
+}
+
+main.app-pattern .glass-panel-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+main.app-pattern .glass-panel-interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+main.app-pattern label[class*="border-dashed"]:not(.workspace-upload) {
+  border-width: 1.5px;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse at 50% 0%, var(--accent-soft), transparent 72%),
+    var(--surface);
+  box-shadow: var(--shadow-glass);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+main.app-pattern label[class*="border-dashed"]:not(.workspace-upload):hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-elevated);
+}
+
+main.app-pattern button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+main.app-pattern button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+main.app-pattern,
+main.app-pattern > div {
+  min-width: 0;
+}
+
+main.app-pattern > div {
+  gap: 1.5rem;
+}
+
+/* ------------------------- Responsive layout ------------------------- */
+
+@media (min-width: 1024px) {
+  main.app-pattern > div {
+    padding-top: 0.5rem;
+    padding-bottom: 2rem;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 820px) {
+  #workspace > .workspace-upload-panel {
+    min-height: 28rem;
+    padding: 1.5rem 2rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-intro h1 {
+    font-size: clamp(2.35rem, 4vw, 3.25rem);
+  }
+
+  #workspace > .workspace-upload-panel .workspace-description {
+    margin-top: 0.75rem;
+    line-height: 1.55;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-capabilities {
+    margin-top: 1rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-upload {
+    min-height: 17rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --navbar-height: 4.65rem;
+    --anchor-offset: 6rem;
+  }
+
+  #insightforge-navbar {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  #insightforge-navbar .navbar-link > span,
+  #insightforge-navbar button[aria-current="page"] > span {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  #workspace > .workspace-upload-panel {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    gap: 1.75rem;
+    padding: clamp(1.35rem, 4vw, 2rem);
+    background-size: 17px 17px, auto, auto;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-intro h1 {
+    max-width: 15ch;
+    font-size: clamp(2.5rem, 8vw, 3.6rem);
+  }
+
+  #workspace > .workspace-upload-panel .workspace-upload {
+    min-height: 19rem;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --navbar-height: 4.25rem;
+    --anchor-offset: 5.5rem;
+  }
+
+  #insightforge-navbar {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+
+  #insightforge-navbar .theme-toggle-icon-only,
+  #insightforge-navbar .theme-toggle-icon-only > button {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    flex-basis: 2.5rem;
+  }
+
+  #workspace > .workspace-upload-panel {
+    gap: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 1.2rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-intro h1 {
+    margin-top: 0.85rem;
+    font-size: clamp(2.25rem, 10vw, 3rem);
+  }
+
+  .workspace-description {
+    margin-top: 0.9rem;
+    font-size: 0.92rem;
+  }
+
+  .workspace-capabilities {
+    gap: 0.45rem;
+    margin-top: 1.15rem;
+  }
+
+  .workspace-capabilities > span {
+    padding: 0.48rem 0.62rem;
+    font-size: 0.72rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-upload {
+    min-height: 16.5rem;
+    padding: 1.25rem 0.9rem;
+  }
+
+  main.app-pattern > div {
+    gap: 1.15rem;
+  }
+
+  main.app-pattern .glass-panel,
+  main.app-pattern .glass-panel-elevated {
+    border-radius: 1rem;
+  }
+}
+
+/* ------------------------- Motion and accessibility ------------------------- */
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .glass-panel-interactive:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  #insightforge-navbar .navbar-link > span,
+  #insightforge-navbar button[aria-current="page"] > span {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   INSIGHTFORGE WORKSPACE REFINEMENT V1
+   Scoped visual improvements; preserves existing components.
+   ========================================================= */
+
+#workspace > .workspace-upload-panel {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 1.75rem;
+  box-shadow:
+    0 24px 70px -38px var(--accent-glow),
+    var(--shadow-elevated);
+  background-size: 22px 22px, auto, auto;
+}
+
+#workspace > .workspace-upload-panel::before,
+#workspace > .workspace-upload-panel::after {
+  opacity: 0.55;
+}
+
+#workspace > .workspace-upload-panel .workspace-intro {
+  padding-block: 0.75rem;
+}
+
+#workspace > .workspace-upload-panel .workspace-eyebrow {
+  gap: 0.7rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+}
+
+#workspace > .workspace-upload-panel .workspace-intro h1 {
+  max-width: 12ch;
+  margin-top: 1.25rem;
+  font-size: clamp(2.65rem, 4.5vw, 4.1rem);
+  line-height: 1.02;
+  letter-spacing: -0.06em;
+}
+
+#workspace > .workspace-upload-panel .workspace-description {
+  max-width: 34rem;
+  margin-top: 1.15rem;
+  font-size: clamp(0.96rem, 1.25vw, 1.06rem);
+  line-height: 1.75;
+}
+
+#workspace > .workspace-upload-panel .workspace-capabilities {
+  gap: 0.55rem;
+  margin-top: 1.5rem;
+}
+
+#workspace > .workspace-upload-panel .workspace-capabilities > span {
+  min-height: 2.35rem;
+  padding: 0.58rem 0.85rem;
+  border-color: color-mix(in srgb, var(--accent) 14%, var(--border));
+  background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+#workspace > .workspace-upload-panel .workspace-capabilities > span:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 32%, var(--surface-solid));
+}
+
+#workspace > .workspace-upload-panel .workspace-upload {
+  min-height: 20rem;
+  padding: clamp(1.4rem, 2.4vw, 2.1rem);
+  border-width: 1.5px;
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  border-radius: 1.35rem;
+  background: color-mix(in srgb, var(--surface-solid) 91%, transparent);
+  box-shadow:
+    0 16px 38px -28px var(--accent-glow),
+    var(--shadow-glass);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+#workspace > .workspace-upload-panel .workspace-upload:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 26%, var(--surface-solid));
+  box-shadow:
+    0 18px 42px -25px var(--accent-glow),
+    var(--shadow-glass);
+}
+
+#workspace > .workspace-upload-panel .workspace-upload:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 4px;
+}
+
+#workspace > .workspace-upload-panel .upload-icon-wrap {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1.3rem;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--accent-soft) 52%, transparent),
+    0 12px 28px var(--accent-glow);
+}
+
+#workspace > .workspace-upload-panel .upload-title {
+  margin-top: 1.45rem;
+  font-size: 1.2rem;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
+}
+
+#workspace > .workspace-upload-panel .upload-description {
+  max-width: 19rem;
+  margin-top: 0.65rem;
+  line-height: 1.7;
+}
+
+#workspace > .workspace-upload-panel .upload-formats {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+#workspace > .workspace-upload-panel .upload-formats b {
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 0.45rem;
+}
+
+#workspace > .workspace-upload-panel .upload-button {
+  min-height: 2.85rem;
+  margin-top: 1.5rem;
+  padding: 0.82rem 1.2rem;
+  border-radius: 0.85rem;
+  box-shadow:
+    0 8px 22px -8px var(--accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    filter 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+#workspace > .workspace-upload-panel .upload-button:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 26px -8px var(--accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+#workspace > .workspace-upload-panel .upload-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  outline-offset: 4px;
+}
+
+#workspace > .workspace-upload-panel .upload-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+:root[data-theme="dark"] #workspace > .workspace-upload-panel {
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+  box-shadow:
+    0 28px 80px -42px rgba(34, 211, 238, 0.2),
+    var(--shadow-elevated);
+}
+
+:root[data-theme="dark"] #workspace > .workspace-upload-panel .workspace-capabilities > span {
+  background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] #workspace > .workspace-upload-panel .workspace-upload {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: color-mix(in srgb, var(--surface-solid) 92%, transparent);
+}
+
+:root[data-theme="dark"] #workspace > .workspace-upload-panel .workspace-upload:hover {
+  background: color-mix(in srgb, var(--accent-soft) 24%, var(--surface-solid));
+}
+
+@media (max-width: 900px) {
+  #workspace > .workspace-upload-panel .workspace-intro h1 {
+    max-width: 13ch;
+    font-size: clamp(2.55rem, 7.5vw, 3.65rem);
+  }
+
+  #workspace > .workspace-upload-panel .workspace-upload {
+    min-height: 19rem;
+  }
+}
+
+@media (max-width: 640px) {
+  #workspace > .workspace-upload-panel {
+    border-radius: 1.25rem;
+    background-size: 18px 18px, auto, auto;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-intro {
+    padding-block: 0.25rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-intro h1 {
+    max-width: 12ch;
+    margin-top: 0.95rem;
+    font-size: clamp(2.35rem, 10vw, 3.05rem);
+  }
+
+  #workspace > .workspace-upload-panel .workspace-description {
+    font-size: 0.94rem;
+    line-height: 1.7;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-capabilities {
+    margin-top: 1.15rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-capabilities > span {
+    min-height: 2.15rem;
+    padding: 0.48rem 0.65rem;
+    font-size: 0.72rem;
+  }
+
+  #workspace > .workspace-upload-panel .workspace-upload {
+    min-height: 17rem;
+    padding: 1.35rem 1rem;
+  }
+
+  #workspace > .workspace-upload-panel .upload-icon-wrap {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  #workspace > .workspace-upload-panel .upload-title {
+    margin-top: 1.2rem;
+    font-size: 1.1rem;
+  }
+
+  #workspace > .workspace-upload-panel .upload-button {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #workspace > .workspace-upload-panel .workspace-capabilities > span,
+  #workspace > .workspace-upload-panel .upload-button {
+    transform: none !important;
+  }
+}
+
+/* End INSIGHTFORGE WORKSPACE REFINEMENT V1 */

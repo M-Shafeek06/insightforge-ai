@@ -1,8 +1,10 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import ThemeToggle from "@/components/theme/ThemeToggle";
-import AnalyticsExecutionPanel from "@/components/analytics/AnalyticsExecutionPanel";
+import AnalyticsExecutionPanel, {
+  type AnalysisConfigurationRequest,
+} from "@/components/analytics/AnalyticsExecutionPanel";
 import {
   getDatasetProfile,
   uploadDataset,
@@ -20,6 +22,7 @@ import {
 } from "@/lib/api/analysis";
 
 const ACTIVE_DATASET_KEY = "insightforge-active-dataset";
+const PENDING_BROWSER_REFRESH_KEY = "insightforge-pending-browser-refresh";
 
 function getStatusStyle(status: string): string {
   switch (status.toLowerCase()) {
@@ -150,7 +153,15 @@ function AnalysisQualityWarningCard({
   );
 }
 
-function AnalysisPlanResults({ plan }: { plan: AnalysisPlan }) {
+function AnalysisPlanResults({
+  plan,
+  onConfigureAnalysis,
+}: {
+  plan: AnalysisPlan;
+  onConfigureAnalysis: (
+    analysis: AnalysisPlan["recommended_analyses"][number]
+  ) => void;
+}) {
   const feasibilityLabel = plan.feasibility_status.replaceAll("_", " ");
 
   return (
@@ -292,6 +303,16 @@ function AnalysisPlanResults({ plan }: { plan: AnalysisPlan }) {
                   </div>
                 </div>
 
+                <div className="mt-5">
+                  <button
+                    type="button"
+                    onClick={() => onConfigureAnalysis(analysis)}
+                    className="inline-flex items-center justify-center rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  >
+                    Configure Analysis
+                  </button>
+                </div>
+
                 <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface-secondary)] p-4">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[var(--foreground-secondary)]">
                     Business value
@@ -390,6 +411,177 @@ export default function ProfileView() {
   const [analysisPlan, setAnalysisPlan] = useState<AnalysisPlan | null>(null);
   const [planning, setPlanning] = useState(false);
   const [planningError, setPlanningError] = useState<string | null>(null);
+  const [requestedAnalysis, setRequestedAnalysis] =
+    useState<AnalysisConfigurationRequest | null>(null);
+
+  // Refresh confirmation state.
+  const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
+  const [refreshingWorkspace, setRefreshingWorkspace] = useState(false);
+  const refreshCancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!refreshDialogOpen) return;
+
+    refreshCancelButtonRef.current?.focus();
+
+    function handleDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !refreshingWorkspace) {
+        event.preventDefault();
+        setRefreshDialogOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleDialogKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleDialogKeyDown);
+    };
+  }, [refreshDialogOpen, refreshingWorkspace]);
+
+  // Ask the browser to confirm document unloads (toolbar refresh, tab close,
+  // or navigation away). Browsers do not expose which unload action was used,
+  // nor whether the native prompt was accepted, so this marker is best-effort.
+  useEffect(() => {
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      try {
+        window.sessionStorage.setItem(PENDING_BROWSER_REFRESH_KEY, "1");
+      } catch {
+        // If storage is unavailable, the browser prompt can still be shown.
+      }
+
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    // If the user cancels the native prompt, the document stays alive. Clear
+    // the marker shortly afterward so a later unrelated navigation is not
+    // mistaken for the canceled unload.
+    function clearCanceledUnloadMarker() {
+      window.setTimeout(() => {
+        if (document.visibilityState === "visible") {
+          try {
+            window.sessionStorage.removeItem(PENDING_BROWSER_REFRESH_KEY);
+          } catch {
+            // Ignore storage restrictions.
+          }
+        }
+      }, 100);
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("focus", clearCanceledUnloadMarker);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("focus", clearCanceledUnloadMarker);
+    };
+  }, []);
+
+  // Intercept common browser refresh shortcuts while this application is focused.
+  useEffect(() => {
+    function handleRefreshShortcut(event: KeyboardEvent) {
+      const key = event.key.toLowerCase();
+
+      const isRefreshShortcut =
+        event.key === "F5" ||
+        ((event.ctrlKey || event.metaKey) &&
+          key === "r");
+
+      if (!isRefreshShortcut || event.altKey) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setRefreshDialogOpen(true);
+    }
+
+    window.addEventListener("keydown", handleRefreshShortcut, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleRefreshShortcut, true);
+    };
+  }, []);
+
+  function cancelWorkspaceRefresh() {
+    if (refreshingWorkspace) return;
+    setRefreshDialogOpen(false);
+  }
+
+  function confirmWorkspaceRefresh() {
+    if (refreshingWorkspace) return;
+
+    setRefreshingWorkspace(true);
+
+    try {
+      // Remove only the active dataset reference.
+      // The backend dataset itself is not deleted.
+      window.sessionStorage.removeItem(ACTIVE_DATASET_KEY);
+
+      // The initial restoration effect will find no saved dataset,
+      // so the application opens with an empty workspace.
+      window.location.reload();
+    } catch {
+      setRefreshingWorkspace(false);
+      setRefreshDialogOpen(false);
+      setError(
+        "Unable to reset the workspace. Please try refreshing again."
+      );
+    }
+  }
+
+  function handleConfigureAnalysis(
+    analysis: AnalysisPlan["recommended_analyses"][number]
+  ) {
+    if (!profile) return;
+
+    const validOperations = [
+      "descriptive",
+      "trend",
+      "segment_comparison",
+      "correlation",
+    ] as const;
+
+    if (!validOperations.includes(analysis.operation)) {
+      setPlanningError(
+        "This recommendation uses an unsupported analysis operation."
+      );
+      return;
+    }
+
+    const requiredColumnCount =
+      analysis.operation === "descriptive" ? 1 : 2;
+
+    const availableColumns = new Set(
+      profile.columns_profile.map((column) => column.name)
+    );
+
+    if (
+      analysis.required_columns.length !== requiredColumnCount ||
+      new Set(analysis.required_columns).size !== requiredColumnCount ||
+      analysis.required_columns.some(
+        (column) => !availableColumns.has(column)
+      )
+    ) {
+      setPlanningError(
+        "This recommendation cannot be configured because its required columns are unavailable or invalid."
+      );
+      return;
+    }
+
+    setPlanningError(null);
+
+    setRequestedAnalysis((previous) => ({
+      id: (previous?.id ?? 0) + 1,
+      dataset_id: profile.dataset_id,
+      operation: analysis.operation,
+      columns: [...analysis.required_columns],
+    }));
+
+    window.setTimeout(() => {
+      document
+        .getElementById("analytics-execution-panel")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
 
   async function loadDataset(datasetId: string) {
     setLoading(true);
@@ -399,6 +591,7 @@ export default function ProfileView() {
     setProfile(null);
     setQuality(null);
     setAnalysisPlan(null);
+    setRequestedAnalysis(null);
     setBusinessObjective("");
     setBusinessQuestions([""]);
 
@@ -434,6 +627,18 @@ export default function ProfileView() {
 
     async function restoreDataset() {
       try {
+        const pendingBrowserUnload = window.sessionStorage.getItem(
+          PENDING_BROWSER_REFRESH_KEY
+        );
+
+        if (pendingBrowserUnload === "1") {
+          // Best-effort reset after an accepted native browser unload prompt.
+          // The browser API cannot guarantee this was specifically a refresh.
+          window.sessionStorage.removeItem(PENDING_BROWSER_REFRESH_KEY);
+          window.sessionStorage.removeItem(ACTIVE_DATASET_KEY);
+          return;
+        }
+
         const savedDatasetId = window.sessionStorage.getItem(
           ACTIVE_DATASET_KEY
         );
@@ -457,7 +662,6 @@ export default function ProfileView() {
     };
   }, []);
 
-
   async function handleFile(file: File | undefined) {
     if (!file) return;
 
@@ -468,6 +672,7 @@ export default function ProfileView() {
     setProfile(null);
     setQuality(null);
     setAnalysisPlan(null);
+    setRequestedAnalysis(null);
     setBusinessObjective("");
     setBusinessQuestions([""]);
 
@@ -587,32 +792,367 @@ export default function ProfileView() {
     });
   }
 
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [activeNav, setActiveNav] = useState("workspace");
+
+  useEffect(() => {
+    if (!profile) {
+      setActiveNav("workspace");
+      return;
+    }
+
+    const sectionMap: Record<string, string> = {
+      "dataset-overview": "overview",
+      "data-quality": "quality",
+      "analysis-planner-heading": "analysis",
+      "column-intelligence": "columns",
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleSections = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort(
+            (a, b) =>
+              a.boundingClientRect.top - b.boundingClientRect.top
+          );
+
+        if (visibleSections.length > 0) {
+          const sectionId = visibleSections[0].target.id;
+          const navId = sectionMap[sectionId];
+
+          if (navId) {
+            setActiveNav(navId);
+          }
+        }
+      },
+      {
+        rootMargin: "-15% 0px -70% 0px",
+        threshold: 0,
+      }
+    );
+
+    Object.keys(sectionMap).forEach((sectionId) => {
+      const section = document.getElementById(sectionId);
+
+      if (section) {
+        observer.observe(section);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, [profile]);
+
+  const navigateToSection = (sectionId: string, navId: string) => {
+    setActiveNav(navId);
+    setMobileNavOpen(false);
+
+    if (sectionId === "workspace") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   const isInitializing = restoring && !profile && !error;
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-6 py-12 text-[var(--foreground)] transition-colors duration-200 md:px-12">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-10">
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-            <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-cyan-700 dark:text-cyan-400">
-                InsightForge AI
-              </p>
+    <main className="app-pattern min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] transition-colors duration-200 sm:px-6 lg:px-8">
+      <nav
+        id="insightforge-navbar"
+        aria-label="Main navigation"
+        className="insightforge-navbar sticky top-0 z-50 -mx-4 -mt-6 mb-8 px-4 py-4 sm:-mx-6 sm:px-6 sm:py-4 lg:-mx-8 lg:px-8"
+      >
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => navigateToSection("workspace", "workspace")}
+            className="group flex min-w-0 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            aria-label="InsightForge AI workspace home"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-base font-black tracking-tight text-white shadow-lg shadow-cyan-500/20">
+              IF
+            </span>
 
-              <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-                Data Intelligence
-              </h1>
+            <span className="min-w-0">
+              <span className="block truncate text-base font-extrabold tracking-tight text-[var(--foreground)] sm:text-lg">
+                InsightForge{" "}
+                <span className="text-cyan-600 dark:text-cyan-400">
+                  AI
+                </span>
+              </span>
 
-              <p className="mt-3 max-w-2xl text-[var(--foreground-secondary)]">
-                Understand your business data through dataset profiling,
-                deterministic quality assessment, and actionable
-                recommendations.
-              </p>
+              <span className="hidden text-[11px] font-medium tracking-wide text-[var(--foreground-secondary)] sm:block">
+                BUSINESS INTELLIGENCE
+              </span>
+            </span>
+          </button>
+
+          <div className="hidden items-center gap-1 lg:flex">
+            {[
+              { id: "workspace", label: "Workspace", target: "workspace" },
+              { id: "overview", label: "Overview", target: "dataset-overview" },
+              { id: "quality", label: "Data quality", target: "data-quality" },
+              {
+                id: "analysis",
+                label: "Analysis",
+                target: "analysis-planner-heading",
+              },
+              {
+                id: "columns",
+                label: "Columns",
+                target: "column-intelligence",
+              },
+            ].map((item) => {
+              const disabled = !profile && item.id !== "workspace";
+              const active = activeNav === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => navigateToSection(item.target, item.id)}
+                  className={`navbar-link relative rounded-lg px-4 py-3 text-sm font-bold transition-colors ${
+                    active
+                      ? "is-active text-cyan-700 dark:text-cyan-300"
+                      : "text-[var(--foreground-secondary)] hover:text-[var(--foreground)]"
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                >
+                  {item.label}
+
+                  {active && (
+                    <span className="absolute inset-x-3 -bottom-1 h-1 rounded-full bg-cyan-500" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-[var(--foreground-secondary)] xl:inline-flex">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  profile
+                    ? "bg-emerald-500"
+                    : "bg-[var(--foreground-secondary)]/40"
+                }`}
+              />
+              {profile ? "Dataset loaded" : "Workspace ready"}
+            </span>
+
+            {/* Application-controlled refresh button */}
+            <button
+              type="button"
+              onClick={() => setRefreshDialogOpen(true)}
+              aria-label="Refresh workspace and clear the active dataset"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:border-cyan-500/50 hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 7v5h-5M4 17v-5h5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5.6 9A7 7 0 0 1 17.4 6L20 12M4 12l2.6 6A7 7 0 0 0 18.4 15"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            <span className="theme-toggle-icon-only">
+              <ThemeToggle />
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen((open) => !open)}
+              aria-label={
+                mobileNavOpen
+                  ? "Close navigation menu"
+                  : "Open navigation menu"
+              }
+              aria-expanded={mobileNavOpen}
+              aria-controls="insightforge-mobile-navigation"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--foreground)] transition-colors hover:bg-[var(--surface-muted)] lg:hidden"
+            >
+              {mobileNavOpen ? (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 7h16M4 12h16M4 17h16"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {mobileNavOpen && (
+          <div
+            id="insightforge-mobile-navigation"
+            className="mx-auto mt-3 grid max-w-[1600px] grid-cols-2 gap-2 border-t border-[var(--border)] pt-3 sm:grid-cols-3 lg:hidden"
+          >
+            {[
+              { id: "workspace", label: "Workspace", target: "workspace" },
+              { id: "overview", label: "Overview", target: "dataset-overview" },
+              { id: "quality", label: "Data quality", target: "data-quality" },
+              {
+                id: "analysis",
+                label: "Analysis",
+                target: "analysis-planner-heading",
+              },
+              {
+                id: "columns",
+                label: "Columns",
+                target: "column-intelligence",
+              },
+            ].map((item) => {
+              const disabled = !profile && item.id !== "workspace";
+              const active = activeNav === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => navigateToSection(item.target, item.id)}
+                  className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    active
+                      ? "border-cyan-500/30 text-cyan-700 dark:text-cyan-300"
+                      : "border-[var(--border)] text-[var(--foreground-secondary)]"
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </nav>
+
+      <div id="workspace" className="mx-auto w-full max-w-[1600px] space-y-6">
+        <section
+          className="workspace-upload-panel"
+          aria-label="Dataset workspace and upload"
+        >
+          <header className="workspace-intro">
+            <div className="workspace-eyebrow">
+              <span className="workspace-eyebrow-dot" />
+              YOUR DATA WORKSPACE
             </div>
 
-            <ThemeToggle />
-          </div>
-        </header>
+            <h1>
+              Turn raw data into <span>clear decisions.</span>
+            </h1>
+
+            <p className="workspace-description">
+              Profile datasets, identify data-quality issues, and uncover
+              useful business signals in one focused workspace.
+            </p>
+
+            <div
+              className="workspace-capabilities"
+              aria-label="Workspace capabilities"
+            >
+              <span>
+                <i aria-hidden="true">01</i> Profile
+              </span>
+              <span>
+                <i aria-hidden="true">02</i> Validate
+              </span>
+              <span>
+                <i aria-hidden="true">03</i> Analyze
+              </span>
+            </div>
+          </header>
+
+          <label
+            className="workspace-upload glass-panel-interactive"
+            htmlFor="dataset-file-input"
+          >
+            <span className="upload-icon-wrap" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                className="h-7 w-7"
+              >
+                <path
+                  d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+
+            <span className="upload-title">Upload your dataset</span>
+
+            <span className="upload-description">
+              Drop your file here or choose a file from your device.
+            </span>
+
+            <span className="upload-formats">
+              <b>CSV</b>
+              <b>XLSX</b>
+              <span>Up to 50 MB</span>
+            </span>
+
+            <input
+              id="dataset-file-input"
+              className="sr-only"
+              type="file"
+              accept=".csv,.xlsx"
+              disabled={loading || restoring}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                void handleFile(file);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+        </section>
 
         {isInitializing && (
           <div
@@ -622,32 +1162,6 @@ export default function ProfileView() {
             Checking for your current session dataset...
           </div>
         )}
-
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-secondary)] px-6 py-16 text-center transition-colors hover:border-cyan-500">
-          <span className="text-lg font-semibold">
-            Upload your business dataset
-          </span>
-
-          <span className="mt-2 text-sm text-[var(--foreground-secondary)]">
-            CSV or XLSX — up to 50 MB
-          </span>
-
-          <span className="mt-6 rounded-lg bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950">
-            Choose file
-          </span>
-
-          <input
-            className="hidden"
-            type="file"
-            accept=".csv,.xlsx"
-            disabled={loading || restoring}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              void handleFile(file);
-              event.currentTarget.value = "";
-            }}
-          />
-        </label>
 
         {loading && (
           <div
@@ -691,7 +1205,7 @@ export default function ProfileView() {
               </p>
             </div>
 
-            <section>
+            <section id="dataset-overview" className="scroll-mt-28">
               <h3 className="mb-4 text-xl font-semibold">
                 Dataset Overview
               </h3>
@@ -705,7 +1219,7 @@ export default function ProfileView() {
                 ].map(([label, value]) => (
                   <div
                     key={label}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-colors duration-200"
+                    className="glass-panel-interactive rounded-xl border border-[var(--border)] p-5 transition-colors duration-200"
                   >
                     <p className="text-sm text-[var(--foreground-secondary)]">
                       {label}
@@ -716,7 +1230,7 @@ export default function ProfileView() {
               </div>
             </section>
 
-            <section>
+            <section id="data-quality" className="scroll-mt-28">
               <div className="mb-4">
                 <h3 className="text-xl font-semibold">Data Quality</h3>
                 <p className="mt-1 text-sm text-[var(--foreground-secondary)]">
@@ -732,9 +1246,11 @@ export default function ProfileView() {
                   <p className="font-medium text-red-700 dark:text-red-300">
                     Quality assessment unavailable
                   </p>
+
                   <p className="mt-2 text-sm text-[var(--foreground-secondary)]">
                     {qualityError}
                   </p>
+
                   <p className="mt-2 text-xs text-[var(--foreground-secondary)]">
                     Dataset profiling succeeded. You can continue reviewing
                     the profile while investigating the quality API error.
@@ -745,7 +1261,7 @@ export default function ProfileView() {
               {quality && (
                 <div className="space-y-5">
                   <div className="grid gap-5 lg:grid-cols-[1fr_2fr]">
-                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors duration-200">
+                    <div className="glass-panel rounded-2xl border border-[var(--border)] p-6 transition-colors duration-200">
                       <p className="text-sm text-[var(--foreground-secondary)]">
                         Overall quality score
                       </p>
@@ -788,7 +1304,7 @@ export default function ProfileView() {
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors duration-200">
+                    <div className="glass-panel rounded-2xl border border-[var(--border)] p-6 transition-colors duration-200">
                       <h4 className="font-semibold">Issue Breakdown</h4>
 
                       <p className="mt-1 text-sm text-[var(--foreground-secondary)]">
@@ -841,6 +1357,7 @@ export default function ProfileView() {
                       <h4 className="text-lg font-semibold">
                         Quality Issues & Recommended Actions
                       </h4>
+
                       <p className="mt-1 text-sm text-[var(--foreground-secondary)]">
                         Review each finding before deciding whether any
                         cleaning is appropriate.
@@ -852,6 +1369,7 @@ export default function ProfileView() {
                         <p className="font-medium text-emerald-700 dark:text-emerald-300">
                           No issues detected
                         </p>
+
                         <p className="mt-2 text-sm text-[var(--foreground-secondary)]">
                           The current quality checks did not identify any
                           issues in this dataset.
@@ -873,15 +1391,21 @@ export default function ProfileView() {
             </section>
 
             <section
+              id="analysis-planner"
               aria-labelledby="analysis-planner-heading"
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-7"
+              className="glass-panel-elevated rounded-2xl border border-[var(--border)] p-5 sm:p-7"
             >
-            <AnalyticsExecutionPanel profile={profile} />
-              <div className="mb-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-400">
-                  Stage 9 · Analysis Planning
-                </p>
+              <div
+                id="analytics-execution-panel"
+                className="scroll-mt-28"
+              >
+                <AnalyticsExecutionPanel
+                  profile={profile}
+                  requestedAnalysis={requestedAnalysis}
+                />
+              </div>
 
+              <div className="mb-6">
                 <h3
                   id="analysis-planner-heading"
                   className="mt-2 text-2xl font-semibold"
@@ -1013,7 +1537,9 @@ export default function ProfileView() {
 
                   <button
                     type="submit"
-                    disabled={planning || loading || !businessObjective.trim()}
+                    disabled={
+                      planning || loading || !businessObjective.trim()
+                    }
                     className="inline-flex shrink-0 items-center justify-center rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {planning
@@ -1045,16 +1571,20 @@ export default function ProfileView() {
                     </p>
                   </div>
 
-                  <AnalysisPlanResults plan={analysisPlan} />
+                  <AnalysisPlanResults
+                    plan={analysisPlan}
+                    onConfigureAnalysis={handleConfigureAnalysis}
+                  />
                 </div>
               )}
             </section>
 
-            <section>
+            <section id="column-intelligence" className="scroll-mt-28">
               <div className="mb-4">
                 <h3 className="text-xl font-semibold">
                   Column Intelligence
                 </h3>
+
                 <p className="mt-1 text-sm text-[var(--foreground-secondary)]">
                   Column types, semantic roles, missing values, uniqueness,
                   and value ranges.
@@ -1104,8 +1634,8 @@ export default function ProfileView() {
                           </td>
 
                           <td className="px-5 py-4 text-[var(--foreground-secondary)]">
-                            {column.min_value ?? "—"} →{" "}
-                            {column.max_value ?? "—"}
+                            {column.min_value ?? "-"} -{" "}
+                            {column.max_value ?? "-"}
                           </td>
                         </tr>
                       ))}
@@ -1117,6 +1647,121 @@ export default function ProfileView() {
           </section>
         )}
       </div>
+
+      {/* Refresh confirmation dialog */}
+      {refreshDialogOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !refreshingWorkspace
+            ) {
+              cancelWorkspaceRefresh();
+            }
+          }}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="refresh-dialog-title"
+            aria-describedby="refresh-dialog-description"
+            className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--foreground)] shadow-2xl sm:p-7"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className="h-6 w-6"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 7v5h-5M4 17v-5h5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5.6 9A7 7 0 0 1 17.4 6L20 12M4 12l2.6 6A7 7 0 0 0 18.4 15"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+
+            <h2
+              id="refresh-dialog-title"
+              className="mt-5 text-xl font-bold tracking-tight"
+            >
+              Refresh InsightForge AI?
+            </h2>
+
+            <p
+              id="refresh-dialog-description"
+              className="mt-3 text-sm leading-6 text-[var(--foreground-secondary)]"
+            >
+              This will clear the currently active dataset session and reset
+              the workspace. Your uploaded dataset file will not be deleted
+              from your computer, and the backend dataset will not be deleted.
+              You will need to upload the dataset again to continue your
+              analysis.
+            </p>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                ref={refreshCancelButtonRef}
+                type="button"
+                onClick={cancelWorkspaceRefresh}
+                disabled={refreshingWorkspace}
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmWorkspaceRefresh}
+                disabled={refreshingWorkspace}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {refreshingWorkspace && (
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="opacity-25"
+                    />
+                    <path
+                      d="M21 12a9 9 0 0 0-9-9"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      className="opacity-90"
+                    />
+                  </svg>
+                )}
+
+                {refreshingWorkspace
+                  ? "Resetting workspace..."
+                  : "Refresh & Clear Data"}
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs text-[var(--foreground-secondary)]">
+              Press Escape or select Cancel to keep your current dataset.
+            </p>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -31,3 +31,12 @@ out/
 /frontend/.certs/
 # TypeScript build cache
 tsconfig.tsbuildinfo
+
+# Temporary backups
+*.backup-*
+*.workspace-backup-*
+*.bak
+
+# Temporary development scripts
+/backend/add_correlation_chart_tests.py
+/frontend/integrate_correlation_chart.py

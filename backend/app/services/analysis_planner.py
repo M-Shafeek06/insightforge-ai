@@ -454,6 +454,7 @@ def _recommended_analyses(
                 name="Trend Analysis",
                 description="Examine how numeric measures change over time.",
                 analysis_method="Time-based aggregation",
+                operation="trend",
                 required_columns=[
                     selected_time,
                     selected_measure or numeric_columns[0],
@@ -476,6 +477,7 @@ def _recommended_analyses(
                 name="Segment Comparison",
                 description="Compare a numeric measure across categories.",
                 analysis_method="Group-by aggregation",
+                operation="segment_comparison",
                 required_columns=[
                     selected_dimension,
                     selected_measure,
@@ -494,6 +496,7 @@ def _recommended_analyses(
                 name="Trend Analysis",
                 description="Examine how numeric measures change over time.",
                 analysis_method="Time-based aggregation",
+                operation="trend",
                 required_columns=[
                     selected_time or time_columns[0],
                     selected_measure or numeric_columns[0],
@@ -523,6 +526,7 @@ def _recommended_analyses(
                         "Explore the relationship between numeric measures."
                     ),
                     analysis_method="Correlation analysis",
+                    operation="correlation",
                     required_columns=[
                         first_measure,
                         second_measure,
@@ -542,6 +546,7 @@ def _recommended_analyses(
                     "Summarize the distribution of a numeric measure."
                 ),
                 analysis_method="Descriptive statistics",
+                operation="descriptive",
                 required_columns=[numeric_columns[0]],
                 business_value=(
                     "Understand the scale and distribution of the measure."
