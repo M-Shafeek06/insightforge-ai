@@ -1,74 +1,91 @@
 # InsightForge AI
-
 ### Business Analytics & Decision Intelligence Platform
 
-**InsightForge AI** is a web-based analytics application that helps users inspect tabular datasets, assess data quality, plan business analysis, execute supported analytical operations, and review visualizations and rule-based business insights.
+<p align="center">
+  <strong>Explore Data. Assess Quality. Perform Analysis. Understand Results.</strong>
+</p>
 
-The current implementation combines a Next.js frontend with a FastAPI backend. Dataset profiling, quality assessment, analysis planning, and analytical calculations are implemented through deterministic application logic. The current source does **not** contain an LLM integration or an ML inference pipeline; the product name is retained, but this README does not describe the current application as an LLM-powered system.
-
-**Project status:** MVP implementation.
+<p align="center">
+  <a href="https://insightforge-ai-sigma.vercel.app/">Live Application</a> •
+  <a href="https://insightforge-ai-r64p.onrender.com/docs">API Documentation</a> •
+  <a href="https://github.com/M-Shafeek06/insightforge-ai">Source Code</a>
+</p>
 
 ---
 
-## Live application
+## Overview
+
+**InsightForge AI** is a web-based business analytics platform for exploring tabular datasets, assessing data quality, carrying out supported analytical operations, and presenting results through visualizations and business-oriented interpretations.
+
+The application brings together dataset upload, profiling, deterministic data-quality checks, analysis planning, analytical execution, and result visualization in one workflow.
+
+**Project workflow:**
+
+**Understand → Assess → Plan → Analyze → Visualize → Interpret**
+
+The platform is designed to make common data-analysis tasks more structured and easier to explore. Analytical calculations are performed by the application's data-processing logic; analysis recommendations and interpretations should be reviewed in the context of the dataset and business question.
+
+**Project status:** MVP deployed.
+
+---
+
+## Live Application
 
 | Component | Link |
 |---|---|
 | Web application | [Open InsightForge AI](https://insightforge-ai-sigma.vercel.app/) |
-| Backend API | [Backend service](https://insightforge-ai-r64p.onrender.com) |
+| Backend API | [API endpoint](https://insightforge-ai-r64p.onrender.com) |
 | API documentation | [FastAPI Swagger UI](https://insightforge-ai-r64p.onrender.com/docs) |
 | Source code | [GitHub repository](https://github.com/M-Shafeek06/insightforge-ai) |
 
-Availability of the hosted services may vary. The links are deployment references, not a guarantee of continuous uptime.
+---
+
+## Application Screenshots
+
+The screenshots are stored in the **repository root**. The image references below intentionally use root-level relative paths, so there is no need to move them into a screenshots folder.
+
+### Application Landing Page
+
+![InsightForge AI landing page](Landing_Page_IFAI.png)
+
+### Dataset Overview
+
+![Dataset overview](Data_Set_Overview_IFAI.png)
+
+### Data Quality Assessment
+
+![Data quality assessment](Data_Quality_IFAI.png)
+
+### Column Intelligence
+
+![Column intelligence](Column_Intelligence_1_IFAI.png)
+
+### Business Analysis Planner
+
+![Business analysis planner](Business_Planner_1_IFAI.png)
+
+### Analytical Results
+
+![Analytical results](Analysis_IFAI.png)
+
+### Business Insights
+
+![Business insights](Business_Insight_IFAI.png)
 
 ---
 
-## Application screenshots
+## Core Features
 
-Screenshots are stored in `docs/Screenshot/`.
+### 1. Dataset Upload and Profiling
 
-### Application interface
+- Upload tabular datasets in CSV and Excel formats.
+- Inspect dataset dimensions and column information.
+- Review detected column data types and semantic information.
+- Examine missing-value information and profiling results.
 
-![InsightForge AI landing page](docs/Screenshot/Landing_Page_IFAI.png)
+### 2. Data Quality Assessment
 
-### Dataset overview
-
-![Dataset overview](docs/Screenshot/Data_Set_Overview_IFAI.png)
-
-### Data quality assessment
-
-![Data quality assessment](docs/Screenshot/Data_Quality_IFAI.png)
-
-### Column intelligence
-
-![Column intelligence](docs/Screenshot/Column_Intelligence_1_IFAI.png)
-
-### Business analysis planner
-
-![Business analysis planner](docs/Screenshot/Business_Planner_1_IFAI.png)
-
-### Analytical results
-
-![Analytical results](docs/Screenshot/Analysis_IFAI.png)
-
-### Business insights
-
-![Business insights](docs/Screenshot/Business_Insight_IFAI.png)
-
----
-
-## Features implemented
-
-### 1. Dataset upload and profiling
-
-- Upload CSV and XLSX files.
-- Enforce a 50 MB upload limit in the upload endpoint.
-- Assign a dataset identifier and save the uploaded file and its original filename metadata.
-- Inspect dataset dimensions, columns, inferred data types, and profile statistics.
-
-### 2. Data quality assessment
-
-The backend applies deterministic checks to identify issues such as:
+The application runs deterministic checks to identify potential data-quality issues, including:
 
 - Missing values.
 - Duplicate rows.
@@ -78,152 +95,176 @@ The backend applies deterministic checks to identify issues such as:
 - Invalid date values.
 - High-cardinality columns.
 
-Findings are classified by the severity rules implemented in the quality service. The assessment is intended to highlight potential data issues; it is not a guarantee that a dataset is fit for every business use.
+Findings are grouped by severity and accompanied by information intended to help users assess potential issues before analysis.
 
-### 3. Business analysis planning
+**Scope note:** Data-quality assessment and recommendations are not the same as an automated data-cleaning pipeline. This README does not claim that the application automatically transforms and saves a cleaned dataset.
 
-The analysis-planning endpoint accepts a business objective and optional business questions, then produces a structured analysis plan using deterministic application logic and dataset information.
+### 3. Business Analysis Planner
 
-The planner provides recommendations. It is separate from the analytical execution endpoints and should not be described as an autonomous AI agent or an LLM-generated plan.
+The planner helps translate a stated business objective into a suggested analytical approach using the available dataset information.
 
-### 4. Analytical execution
+It can help identify relevant columns, propose KPIs or analytical operations, and surface relevant data-quality considerations.
 
-The backend exposes the following supported operations:
+Planner recommendations are separate from analytical execution. A recommendation is not evidence that a calculation has already been run.
 
-| Operation | Description |
+### 4. Analytical Operations
+
+The backend includes services for the following supported operations:
+
+| Operation | Purpose |
 |---|---|
-| KPI analysis | Calculate a selected measure using a supported aggregation. |
-| Grouped KPI analysis | Aggregate a selected measure by a grouping column. |
-| Descriptive statistics | Calculate descriptive summaries for a selected numeric column. |
-| Trend analysis | Aggregate a measure over a selected date/time column and interval. |
-| Segment comparison | Compare an aggregated measure across segments. |
-| Correlation analysis | Calculate Pearson correlation between two selected numeric columns. |
+| KPI / aggregation analysis | Calculate measures, including optional grouping. |
+| Descriptive statistics | Summarize numerical data. |
+| Trend analysis | Examine a measure across time periods. |
+| Segment comparison | Compare aggregated measures across categories. |
+| Correlation analysis | Calculate Pearson correlation for supported numerical variables. |
 
-The actual supported parameters and validation rules are defined by the API schemas and execution services.
+The available inputs and validation rules depend on the selected operation and dataset.
 
-### 5. Visualization and business insights
+### 5. Visualizations
 
-The frontend presents analytical outputs using charts, tables, and business-insight summaries. Business insights are generated by deterministic frontend logic from returned analytical results. They are interpretations of calculated observations, not proof of causation or a substitute for domain review.
+The frontend presents analytical outputs through charts and tables, including views for trends, segment comparisons, and numerical relationships.
 
-### Scope clarification
+### 6. Business-Oriented Interpretations
 
-The current source includes data-quality detection and recommendations, but it does not implement a complete automated data-cleaning workflow that transforms and saves a cleaned dataset. Do not interpret a recommendation as an executed cleaning operation.
+The application presents interpretations based on analytical outputs and dataset observations. These are intended to help users explore results and consider follow-up questions.
+
+Interpretations are not guarantees of business outcomes. Correlation does not establish causation, and statistical outputs should be assessed with appropriate context and data limitations in mind.
 
 ---
 
-## Technology stack
+## Technology
+
+The following technologies are reflected in the application's main frontend and backend implementation.
 
 ### Frontend
 
-| Technology | Role |
-|---|---|
-| Next.js 16 | React application framework and API proxy route |
-| React 19 | User interface |
-| TypeScript | Frontend language and type checking |
-| Tailwind CSS 4 | Styling |
-| Plotly.js / react-plotly.js | Data visualizations |
-| Vitest | Frontend unit tests |
+- **Next.js** — application framework and routing.
+- **React** — user interface components.
+- **TypeScript** — typed frontend development.
+- **Tailwind CSS** — interface styling.
+- **Plotly** — data visualization.
+- **Vitest** — frontend test runner.
 
 ### Backend
 
-| Technology | Role |
-|---|---|
-| Python | Backend language |
-| FastAPI | REST API framework |
-| Pydantic / pydantic-settings | Request/response validation and configuration |
-| Pandas | Dataset loading, profiling, and analytical calculations |
-| NumPy | Numerical operations where used |
-| openpyxl | XLSX file support through the Python data stack |
-| pytest / HTTPX | Backend tests and API test client |
+- **Python** — backend application and analytical logic.
+- **FastAPI** — REST API.
+- **Pydantic / Pydantic Settings** — request validation and settings.
+- **Pandas** — tabular data processing and analysis.
+- **NumPy** — numerical operations.
+- **Uvicorn** — ASGI server.
 
-### Present in dependencies or supporting code, but not part of the active analytics execution path
+### Supporting configuration and libraries
 
-- **DuckDB:** A helper adapter exists at `backend/app/data/duckdb_engine.py`, but the current analytical execution services use Pandas and do not call that adapter.
-- **PyArrow:** Listed as a backend dependency; no direct application-level use was identified in the submitted source.
-- **SQLAlchemy and psycopg:** Database engine configuration exists in `backend/app/db.py`, and PostgreSQL is defined in Docker Compose. The inspected application routes do not currently use this engine for dataset or analysis-result persistence.
-- **PostgreSQL:** Available as optional local infrastructure through Docker Compose; it is not currently integrated into the main dataset workflow.
+The repository also includes configuration or dependencies for tools such as DuckDB, PyArrow, SQLAlchemy, PostgreSQL and psycopg. Their presence in dependency or configuration files should not be interpreted as proof that every application workflow uses them. The primary analytical services documented above use Pandas-based processing.
 
 ---
 
-## Architecture and workflow
+## Application Architecture
 
-The frontend communicates with the FastAPI backend through a Next.js catch-all API route. The backend handles file upload, profiling, quality assessment, analysis planning, and analytical execution. The frontend renders the returned profile, quality findings, analysis results, charts, and rule-based insight summaries.
+The application separates the web interface from the Python API.
 
 ```text
 User
-  |
-  v
-Next.js / React frontend
-  |
-  v
-Next.js API proxy route
-  |
-  v
-FastAPI backend
-  |
-  +--> Dataset upload and file storage
-  +--> Dataset profiling
-  +--> Data quality assessment
-  +--> Deterministic business analysis planning
-  +--> Pandas-based analytical execution
-          |
-          +--> KPI / grouped KPI
-          +--> Descriptive statistics
-          +--> Trend analysis
-          +--> Segment comparison
-          +--> Pearson correlation
-  |
-  v
-Frontend charts and rule-based business insights
+ |
+ v
+Next.js Frontend
+ |
+ v
+Next.js API Route Handler
+ |
+ v
+FastAPI Backend
+ |
+ +--------------------+
+ |                    |
+ v                    v
+Dataset Upload    Dataset Profiling
+ |                    |
+ +----------+---------+
+            |
+            v
+     Data Quality Checks
+            |
+            v
+    Business Analysis Planner
+            |
+            v
+     Analytical Execution
+            |
+            v
+   Results and Visualizations
+            |
+            v
+ Business-Oriented Interpretation
 ```
 
-### Dataset storage
-
-Uploaded dataset files and their filename metadata are saved under the configured upload directory. The default backend settings use `../data/raw` and `../data/processed` when run from the `backend` directory. The current dataset workflow is file-based; PostgreSQL persistence is not implemented in the inspected application routes.
+The planner proposes analytical approaches, while the execution services perform the corresponding supported calculations. These are distinct stages.
 
 ---
 
-## Repository structure
+## Repository Structure
+
+The main application directories and root-level screenshots are organized as follows:
 
 ```text
 insightforge-ai/
+│
 ├── backend/
 │   ├── app/
-│   │   ├── api/              # FastAPI route handlers
-│   │   ├── data/             # Data helpers and loaders
-│   │   ├── schemas/          # Pydantic request/response schemas
-│   │   ├── services/         # Profiling, quality, planning, analytics
-│   │   ├── db.py             # SQLAlchemy engine configuration
-│   │   └── main.py           # FastAPI application
-│   ├── tests/                # Backend automated tests
-│   └── requirements.txt
+│   │   ├── api/
+│   │   ├── data/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── db.py
+│   │   └── main.py
+│   ├── tests/
+│   ├── requirements.txt
+│   └── pytest.ini
+│
 ├── frontend/
-│   ├── app/                  # Next.js routes and API proxy
-│   ├── components/           # UI and analytics components
-│   ├── lib/                  # API clients and business-insight logic
+│   ├── app/
+│   ├── components/
+│   ├── lib/
 │   ├── package.json
 │   └── package-lock.json
+│
 ├── data/
-│   ├── raw/                  # Uploaded datasets (not committed)
-│   └── processed/            # Reserved/configured processing directory
+│   └── samples/
+│
 ├── docs/
-│   ├── Screenshot/           # Application screenshots
-│   └── architecture/         # Architecture documentation
+│   └── architecture/
+│
+├── scripts/
+│
+├── Analysis_IFAI.png
+├── Business_Insight_IFAI.png
+├── Business_Planner_1_IFAI.png
+├── Column_Intelligence_1_IFAI.png
+├── Data_Quality_IFAI.png
+├── Data_Set_Overview_IFAI.png
+├── Landing_Page_IFAI.png
+│
 ├── .env.example
-├── docker-compose.yml        # Optional PostgreSQL service
+├── .gitignore
+├── docker-compose.yml
 └── README.md
 ```
 
+Additional screenshots and project files may also be present in the repository.
+
 ---
 
-## Run locally
+## Run Locally
 
 ### Prerequisites
 
-- Python 3.12 recommended (the project dependencies should be installed in a virtual environment).
-- Node.js compatible with the installed Next.js version.
-- npm.
-- Docker Desktop only if you want to start the optional PostgreSQL service.
+- Python 3.12
+- Node.js and npm
+- Git
+
+Docker Desktop is only needed if you intend to start the PostgreSQL service defined in the Compose configuration.
 
 ### 1. Clone the repository
 
@@ -234,72 +275,96 @@ cd insightforge-ai
 
 ### 2. Configure environment variables
 
-Copy `.env.example` to `.env` in the repository root and adjust values for your local environment. Do not commit `.env` or put real credentials in `.env.example`.
+Review `.env.example` and configure the variables required by the backend and frontend deployment setup.
 
-The backend settings load `../.env` when the backend is started from the `backend` directory. The frontend API proxy reads `BACKEND_URL` from the Next.js server environment and defaults to `http://127.0.0.1:8000` if it is not set.
+The Next.js API route handler reads `BACKEND_URL` to forward API requests to the FastAPI service. For local development, its default backend address is `http://127.0.0.1:8000`.
 
-### 3. Start the backend
+Do not commit real credentials, passwords, private keys, or populated `.env` files.
 
-From the repository root:
+### 3. Set up the backend
 
-```powershell
+```bash
 cd backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-uvicorn app.main:app --reload
 ```
 
-The API is available at `http://127.0.0.1:8000` and the interactive API documentation at `http://127.0.0.1:8000/docs`.
+Activate the virtual environment.
 
-For macOS/Linux, activate the environment with:
+**Windows PowerShell:**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS / Linux:**
 
 ```bash
 source .venv/bin/activate
 ```
 
-### 4. Start the frontend
+Install the backend requirements:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Start the API:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API is available locally at:
+
+```text
+http://127.0.0.1:8000
+```
+
+Interactive API documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### 4. Set up the frontend
 
 Open a second terminal from the repository root:
 
 ```bash
 cd frontend
 npm ci
-```
-
-Set `BACKEND_URL=http://127.0.0.1:8000` in the frontend process environment if you need to override the API proxy default, then run:
-
-```bash
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser.
+Open the local address printed by the Next.js development server.
+
+For local API requests, ensure the Next.js server can reach the FastAPI backend through `BACKEND_URL`.
 
 ### 5. Optional PostgreSQL service
 
-The Docker Compose file defines a PostgreSQL service. Start it from the repository root with:
+The repository includes a Docker Compose configuration for PostgreSQL. If you need to run that service locally, start it from the repository root:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d
 ```
 
-This starts the database infrastructure only. The current dataset and analytics routes do not persist application data to PostgreSQL.
+The presence of this service configuration does not mean every current application workflow requires PostgreSQL.
 
 ---
 
-## Tests and build checks
+## Tests and Build Commands
 
 ### Backend tests
 
-From the `backend` directory with the virtual environment activated:
+From the `backend` directory, with the virtual environment activated:
 
 ```bash
 python -m pytest -q
 ```
 
-### Frontend unit tests
+### Frontend tests
 
-From the `frontend` directory after installing dependencies:
+From the `frontend` directory:
 
 ```bash
 npm test
@@ -307,39 +372,51 @@ npm test
 
 ### Frontend production build
 
+From the `frontend` directory:
+
 ```bash
 npm run build
 ```
 
-These are the repository's available test/build commands. Run them in your local environment before treating a particular commit as verified; results can depend on the installed runtime, dependencies, and environment configuration.
+These are the repository's test and build commands. Results should be confirmed in the environment where they are run; this README does not imply that a test or build has passed on every machine.
 
 ---
 
-## Current limitations and future scope
+## Data and Analytical Limitations
 
-The following capabilities are **not claimed as implemented** in the current source:
+- Data-quality findings are produced by implemented deterministic checks.
+- Planner recommendations are suggestions, not completed analytical results.
+- Correlation describes statistical association and does not prove causation.
+- Results depend on the quality, size, and suitability of the uploaded dataset.
+- A quality score reflects the application's configured checks; it is not a universal certification of dataset quality.
+- Business interpretations should be reviewed against domain knowledge before being used for decisions.
 
-- LLM-based analysis or conversational AI integration.
-- Machine-learning model inference.
-- Automated cleaning that transforms and persists a cleaned dataset.
-- DuckDB-backed execution in the current analytics services.
-- PostgreSQL-backed persistence for datasets or analytical results.
+---
 
-Potential future work may include integrating an LLM with controlled structured outputs, implementing reproducible cleaning operations, connecting DuckDB to the analytical execution path, and adding persistent dataset/job metadata storage.
+## Project Scope
+
+The current project focuses on dataset upload and profiling, data-quality assessment, business analysis planning, supported analytical calculations, visualizations, and result interpretation.
+
+Potential future work may include expanded data transformation capabilities, additional analytical methods, and broader persistence or decision-support functionality. These are future possibilities, not claims about features currently delivered.
 
 ---
 
 ## Author
 
-**M Shafeek**  
+**M. Shafeek**  
 B.Tech – Artificial Intelligence & Data Science  
 Dhaanish Ahmed Institute of Technology
+
+**Areas of interest:** Data Analytics | Business Intelligence | Data-Driven Decision Making
 
 - **Portfolio:** [m-shafeek06.github.io](https://m-shafeek06.github.io/)
 - **GitHub:** [M-Shafeek06](https://github.com/M-Shafeek06)
 - **LinkedIn:** [M Shafeek](https://www.linkedin.com/in/m-shafeek)
-- **Email:** shafeekm529@gmail.com
+- **Email:** [shafeekm529@gmail.com](mailto:shafeekm529@gmail.com)
 
 ---
 
-<p align="center"><strong>InsightForge AI — From raw data to clearer business understanding.</strong></p>
+<p align="center">
+  <strong>InsightForge AI</strong><br>
+  Explore data. Understand results. Support better decisions.
+</p>
